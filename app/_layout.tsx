@@ -1,5 +1,7 @@
-import "react-native-url-polyfill/auto";
-import "../src/polyfills/globals";
+// Polyfills — must be before any other imports
+import "fast-text-encoding";
+import "react-native-get-random-values";
+import "@ethersproject/shims";
 
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -14,7 +16,11 @@ import {
 } from "@expo-google-fonts/urbanist";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { PrivyProvider } from "@privy-io/expo";
 import { AuthProvider } from "../src/context/AuthContext";
+
+const PRIVY_APP_ID    = process.env.EXPO_PUBLIC_PRIVY_APP_ID    ?? "";
+const PRIVY_CLIENT_ID = process.env.EXPO_PUBLIC_PRIVY_CLIENT_ID ?? "";
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -31,21 +37,31 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <AuthProvider>
-          <StatusBar style="auto" />
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: "#000000" },
-              animation: "fade",
-            }}
-          >
-            <Stack.Screen name="index"  options={{ headerShown: false }} />
-            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="+not-found" />
-          </Stack>
-        </AuthProvider>
+        <PrivyProvider
+          appId={PRIVY_APP_ID}
+          clientId={PRIVY_CLIENT_ID}
+          config={{
+            embeddedWallets: {
+              ethereum: { createOnLogin: "off" },
+            },
+          }}
+        >
+          <AuthProvider>
+            <StatusBar style="auto" />
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: "#000000" },
+                animation: "fade",
+              }}
+            >
+              <Stack.Screen name="index"  options={{ headerShown: false }} />
+              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="+not-found" />
+            </Stack>
+          </AuthProvider>
+        </PrivyProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

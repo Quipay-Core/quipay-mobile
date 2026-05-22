@@ -1,69 +1,53 @@
 import { useState } from "react";
 import {
   View, Text, TouchableOpacity, TextInput,
-  StyleSheet, Dimensions, ScrollView, ActivityIndicator, Alert,
+  StyleSheet, Dimensions, ScrollView, ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useLoginWithEmail, useLoginWithOAuth, usePrivy } from "@privy-io/expo";
 import { LogoIcon } from "../../components/ui/Logo";
 import { YellowGradient } from "../../constants/theme";
-import { loginWithEmail, loginWithGoogle, loginWithApple } from "../../services/web3auth";
-import { useAuth } from "../../context/AuthContext";
 
 const { height } = Dimensions.get("window");
-const YELLOW = "#F5C249";
 const CARD   = "#111111";
 const BORDER = "#1a1a1a";
+const ACCENT = "#F5C249";
 
 export default function ConnectScreen() {
-  const { refreshAuth } = useAuth();
-  const [email,   setEmail]   = useState("");
-  const [loading, setLoading] = useState<string | null>(null);
+  const { logout } = usePrivy();
+  const { sendCode, loginWithCode, state: emailState } = useLoginWithEmail({
+    onLoginSuccess() { router.replace("/(tabs)"); },
+  });
+  const { login: oauthLogin, state: oauthState } = useLoginWithOAuth({
+    onLoginSuccess() { router.replace("/(tabs)"); },
+  });
 
-  async function handleEmail() {
-    if (!email.trim() || !email.includes("@")) {
-      Alert.alert("Invalid email", "Please enter a valid email address.");
-      return;
-    }
-    try {
-      setLoading("email");
-      await loginWithEmail(email.trim().toLowerCase());
-      refreshAuth();
-      router.replace("/(tabs)");
-    } catch (e: any) {
-      Alert.alert("Login failed", e?.message ?? "Something went wrong.");
-    } finally {
-      setLoading(null);
-    }
+  const [email,     setEmail]     = useState("");
+  const [code,      setCode]      = useState("");
+  const [codeSent,  setCodeSent]  = useState(false);
+
+  const isLoading = emailState.status === "sending-code"
+    || emailState.status === "awaiting-code-input"
+    || emailState.status === "submitting-code"
+    || oauthState.status === "loading";
+
+  async function handleSendCode() {
+    if (!email.trim()) return;
+    await sendCode({ email: email.trim().toLowerCase() });
+    setCodeSent(true);
   }
 
-  async function handleGoogle() {
-    try {
-      setLoading("google");
-      await loginWithGoogle();
-      refreshAuth();
-      router.replace("/(tabs)");
-    } catch (e: any) {
-      Alert.alert("Login failed", e?.message ?? "Something went wrong.");
-    } finally {
-      setLoading(null);
-    }
+  async function handleVerifyCode() {
+    if (!code.trim()) return;
+    await loginWithCode({ code: code.trim(), email: email.trim().toLowerCase() });
   }
 
-  async function handleApple() {
-    try {
-      setLoading("apple");
-      await loginWithApple();
-      refreshAuth();
-      router.replace("/(tabs)");
-    } catch (e: any) {
-      Alert.alert("Login failed", e?.message ?? "Something went wrong.");
-    } finally {
-      setLoading(null);
-    }
+  async function handleOAuth(provider: "google" | "apple") {
+    await oauthLogin({ provider });
   }
 
   return (
@@ -86,7 +70,11 @@ export default function ConnectScreen() {
           </View>
           <View style={styles.headlineWrap}>
             <Text style={styles.heading}>Sign in to{"\n"}Quipay</Text>
-            <Text style={styles.sub}>Your wallet is created automatically. No seed phrase needed.</Text>
+            <Text style={styles.sub}>
+              {codeSent
+                ? `Enter the code sent to ${email}`
+                : "No seed phrase. No wallet needed. Just sign in."}
+            </Text>
           </View>
         </SafeAreaView>
       </LinearGradient>
@@ -98,131 +86,147 @@ export default function ConnectScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Email input */}
-        <View style={styles.emailSection}>
-          <Text style={styles.fieldLabel}>Email address</Text>
-          <View style={styles.emailRow}>
-            <TextInput
-              style={styles.emailInput}
-              placeholder="you@example.com"
-              placeholderTextColor="#525252"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-          </View>
-          <TouchableOpacity
-            style={[styles.emailBtn, loading === "email" && styles.btnLoading]}
-            onPress={handleEmail}
-            disabled={!!loading}
-            activeOpacity={0.85}
-          >
-            {loading === "email"
-              ? <ActivityIndicator color="#000" size="small" />
-              : <>
-                  <Text style={styles.emailBtnText}>Continue with Email</Text>
-                  <Ionicons name="arrow-forward" size={16} color="#000" />
-                </>
-            }
-          </TouchableOpacity>
-          <Text style={styles.magicLinkNote}>We'll send a magic link — no password needed</Text>
-        </View>
+        {!codeSent ? (
+          <>
+            {/* Email input */}
+            <Text style={styles.fieldLabel}>Email address</Text>
+            <View style={styles.inputWrap}>
+              <TextInput
+                style={styles.input}
+                placeholder="you@example.com"
+                placeholderTextColor="#525252"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </View>
+            <TouchableOpacity
+              style={[styles.primaryBtn, (!email || isLoading) && styles.btnDisabled]}
+              onPress={handleSendCode}
+              disabled={!email || isLoading}
+              activeOpacity={0.85}
+            >
+              {isLoading
+                ? <ActivityIndicator color="#000" size="small" />
+                : <>
+                    <Text style={styles.primaryBtnText}>Continue with Email</Text>
+                    <Ionicons name="arrow-forward" size={16} color="#000" />
+                  </>
+              }
+            </TouchableOpacity>
 
-        {/* Divider */}
-        <View style={styles.dividerRow}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>or continue with</Text>
-          <View style={styles.dividerLine} />
-        </View>
+            <Text style={styles.hint}>We'll send a one-time code — no password needed</Text>
 
-        {/* Social buttons */}
-        <View style={styles.socialRow}>
-          <TouchableOpacity
-            style={[styles.socialBtn, loading === "google" && styles.btnLoading]}
-            onPress={handleGoogle}
-            disabled={!!loading}
-            activeOpacity={0.75}
-          >
-            {loading === "google"
-              ? <ActivityIndicator color="#fff" size="small" />
-              : <>
-                  <Ionicons name="logo-google" size={20} color="#fff" />
-                  <Text style={styles.socialBtnText}>Google</Text>
-                </>
-            }
-          </TouchableOpacity>
+            {/* Divider */}
+            <View style={styles.dividerRow}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or continue with</Text>
+              <View style={styles.dividerLine} />
+            </View>
 
-          <TouchableOpacity
-            style={[styles.socialBtn, loading === "apple" && styles.btnLoading]}
-            onPress={handleApple}
-            disabled={!!loading}
-            activeOpacity={0.75}
-          >
-            {loading === "apple"
-              ? <ActivityIndicator color="#fff" size="small" />
-              : <>
-                  <Ionicons name="logo-apple" size={20} color="#fff" />
-                  <Text style={styles.socialBtnText}>Apple</Text>
-                </>
-            }
-          </TouchableOpacity>
-        </View>
+            {/* Social */}
+            <View style={styles.socialRow}>
+              <TouchableOpacity
+                style={[styles.socialBtn, isLoading && styles.btnDisabled]}
+                onPress={() => handleOAuth("google")}
+                disabled={isLoading}
+                activeOpacity={0.75}
+              >
+                {oauthState.status === "loading"
+                  ? <ActivityIndicator color="#fff" size="small" />
+                  : <>
+                      <Ionicons name="logo-google" size={20} color="#fff" />
+                      <Text style={styles.socialBtnText}>Google</Text>
+                    </>
+                }
+              </TouchableOpacity>
 
-        {/* Skip */}
-        <TouchableOpacity
-          style={styles.skipBtn}
-          onPress={() => router.replace("/(tabs)")}
-          disabled={!!loading}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.skipText}>Skip for now</Text>
-        </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.socialBtn, isLoading && styles.btnDisabled]}
+                onPress={() => handleOAuth("apple")}
+                disabled={isLoading}
+                activeOpacity={0.75}
+              >
+                {oauthState.status === "loading"
+                  ? <ActivityIndicator color="#fff" size="small" />
+                  : <>
+                      <Ionicons name="logo-apple" size={20} color="#fff" />
+                      <Text style={styles.socialBtnText}>Apple</Text>
+                    </>
+                }
+              </TouchableOpacity>
+            </View>
+          </>
+        ) : (
+          <>
+            {/* OTP input */}
+            <Text style={styles.fieldLabel}>Verification code</Text>
+            <View style={styles.inputWrap}>
+              <TextInput
+                style={[styles.input, styles.otpInput]}
+                placeholder="000000"
+                placeholderTextColor="#525252"
+                value={code}
+                onChangeText={setCode}
+                keyboardType="number-pad"
+                maxLength={6}
+                autoFocus
+              />
+            </View>
+            <TouchableOpacity
+              style={[styles.primaryBtn, (!code || isLoading) && styles.btnDisabled]}
+              onPress={handleVerifyCode}
+              disabled={!code || isLoading}
+              activeOpacity={0.85}
+            >
+              {isLoading
+                ? <ActivityIndicator color="#000" size="small" />
+                : <Text style={styles.primaryBtnText}>Verify Code</Text>
+              }
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.backToEmail} onPress={() => { setCodeSent(false); setCode(""); }}>
+              <Text style={styles.backToEmailText}>← Change email</Text>
+            </TouchableOpacity>
+          </>
+        )}
 
         <Text style={styles.disclaimer}>
-          By continuing you agree to Quipay's Terms of Service. Your wallet is non-custodial — only you control your keys.
+          By continuing you agree to Quipay's Terms. Your identity is managed by Privy — non-custodial and private.
         </Text>
-
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root:          { flex: 1, backgroundColor: "#000" },
-
-  yellowPanel:   { height: height * 0.38, borderBottomLeftRadius: 36, borderBottomRightRadius: 36, overflow: "hidden" },
-  panelInner:    { flex: 1, paddingHorizontal: 24, paddingBottom: 32, justifyContent: "space-between" },
-  topRow:        { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  backBtn:       { width: 38, height: 38, borderRadius: 12, backgroundColor: "rgba(0,0,0,0.1)", alignItems: "center", justifyContent: "center" },
-  headlineWrap:  { gap: 8 },
-  heading:       { fontFamily: "Urbanist_900Black", fontSize: 36, color: "#000", letterSpacing: -1.2, lineHeight: 42 },
-  sub:           { fontFamily: "Urbanist_500Medium", fontSize: 13, color: "rgba(0,0,0,0.55)", lineHeight: 20 },
-
-  scroll:        { flex: 1 },
-  scrollContent: { paddingHorizontal: 24, paddingTop: 28, paddingBottom: 32 },
-
-  emailSection:  { marginBottom: 24 },
-  fieldLabel:    { fontFamily: "Urbanist_600SemiBold", fontSize: 13, color: "#d4d4d4", marginBottom: 8 },
-  emailRow:      { backgroundColor: CARD, borderRadius: 14, borderWidth: 1, borderColor: BORDER, marginBottom: 10 },
-  emailInput:    { fontFamily: "Urbanist_500Medium", fontSize: 15, color: "#fff", paddingHorizontal: 16, paddingVertical: 14 },
-  emailBtn:      { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: YELLOW, borderRadius: 14, paddingVertical: 16 },
-  emailBtnText:  { fontFamily: "Urbanist_700Bold", fontSize: 15, color: "#000" },
-  magicLinkNote: { fontFamily: "Urbanist_400Regular", fontSize: 12, color: "#525252", textAlign: "center", marginTop: 8 },
-
-  btnLoading:    { opacity: 0.6 },
-
-  dividerRow:    { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 20 },
-  dividerLine:   { flex: 1, height: 1, backgroundColor: BORDER },
-  dividerText:   { fontFamily: "Urbanist_500Medium", fontSize: 12, color: "#525252" },
-
-  socialRow:     { flexDirection: "row", gap: 12, marginBottom: 24 },
-  socialBtn:     { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: CARD, borderRadius: 14, paddingVertical: 15, borderWidth: 1, borderColor: BORDER },
-  socialBtnText: { fontFamily: "Urbanist_600SemiBold", fontSize: 14, color: "#fff" },
-
-  skipBtn:       { alignItems: "center", paddingVertical: 14, marginBottom: 16 },
-  skipText:      { fontFamily: "Urbanist_500Medium", fontSize: 14, color: "#525252" },
-
-  disclaimer:    { fontFamily: "Urbanist_400Regular", fontSize: 11, color: "#404040", textAlign: "center", lineHeight: 17 },
+  root:           { flex: 1, backgroundColor: "#000" },
+  yellowPanel:    { height: height * 0.38, borderBottomLeftRadius: 36, borderBottomRightRadius: 36, overflow: "hidden" },
+  panelInner:     { flex: 1, paddingHorizontal: 24, paddingBottom: 32, justifyContent: "space-between" },
+  topRow:         { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  backBtn:        { width: 38, height: 38, borderRadius: 12, backgroundColor: "rgba(0,0,0,0.1)", alignItems: "center", justifyContent: "center" },
+  headlineWrap:   { gap: 8 },
+  heading:        { fontFamily: "Urbanist_900Black", fontSize: 36, color: "#000", letterSpacing: -1.2, lineHeight: 42 },
+  sub:            { fontFamily: "Urbanist_500Medium", fontSize: 13, color: "rgba(0,0,0,0.55)", lineHeight: 19 },
+  scroll:         { flex: 1 },
+  scrollContent:  { paddingHorizontal: 24, paddingTop: 28, paddingBottom: 32 },
+  fieldLabel:     { fontFamily: "Urbanist_600SemiBold", fontSize: 13, color: "#d4d4d4", marginBottom: 8 },
+  inputWrap:      { backgroundColor: CARD, borderRadius: 14, borderWidth: 1, borderColor: BORDER, marginBottom: 12 },
+  input:          { fontFamily: "Urbanist_500Medium", fontSize: 15, color: "#fff", paddingHorizontal: 16, paddingVertical: 14 },
+  otpInput:       { fontSize: 24, letterSpacing: 8, textAlign: "center" },
+  primaryBtn:     { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: ACCENT, borderRadius: 14, paddingVertical: 16, marginBottom: 10 },
+  btnDisabled:    { opacity: 0.5 },
+  primaryBtnText: { fontFamily: "Urbanist_700Bold", fontSize: 15, color: "#000" },
+  hint:           { fontFamily: "Urbanist_400Regular", fontSize: 12, color: "#525252", textAlign: "center", marginBottom: 24 },
+  dividerRow:     { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 16 },
+  dividerLine:    { flex: 1, height: 1, backgroundColor: BORDER },
+  dividerText:    { fontFamily: "Urbanist_500Medium", fontSize: 12, color: "#525252" },
+  socialRow:      { flexDirection: "row", gap: 12, marginBottom: 24 },
+  socialBtn:      { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: CARD, borderRadius: 14, paddingVertical: 15, borderWidth: 1, borderColor: BORDER },
+  socialBtnText:  { fontFamily: "Urbanist_600SemiBold", fontSize: 14, color: "#fff" },
+  backToEmail:    { alignItems: "center", paddingVertical: 14, marginBottom: 8 },
+  backToEmailText:{ fontFamily: "Urbanist_500Medium", fontSize: 14, color: ACCENT },
+  disclaimer:     { fontFamily: "Urbanist_400Regular", fontSize: 11, color: "#404040", textAlign: "center", lineHeight: 17 },
 });

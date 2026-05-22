@@ -8,13 +8,13 @@ import { useAuth } from "../../src/context/AuthContext";
 const c = Colors.dark;
 
 export default function TabsLayout() {
-  const { user, ready } = useAuth();
+  const { authenticated, ready } = useAuth();
 
   useEffect(() => {
-    if (ready && !user) {
+    if (ready && !authenticated) {
       router.replace("/(auth)");
     }
-  }, [ready, user]);
+  }, [ready, authenticated]);
 
   return (
     <Tabs

@@ -6,12 +6,14 @@ import { StatCard } from "../../components/ui/StatCard";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { Colors } from "../../constants/theme";
 import { useAuth } from "../../context/AuthContext";
+import { usePrivy } from "@privy-io/expo";
 import { shortenAddress } from "../../utils/format";
 
 const c = Colors.dark;
 
 export default function EarningsScreen() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
+  const { logout } = usePrivy();
 
   const greeting = () => {
     const h = new Date().getHours();

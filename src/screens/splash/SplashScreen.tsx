@@ -5,7 +5,7 @@ import { LogoIcon } from "../../components/ui/Logo";
 import { useAuth } from "../../context/AuthContext";
 
 export default function SplashScreen() {
-  const { user, ready } = useAuth();
+  const { ready, authenticated } = useAuth();
   const opacity = useRef(new Animated.Value(0)).current;
   const scale   = useRef(new Animated.Value(0.85)).current;
 
@@ -16,16 +16,15 @@ export default function SplashScreen() {
     ]).start();
   }, []);
 
-  // Wait for auth to initialise, then route accordingly
   useEffect(() => {
     if (!ready) return;
-    const timeout = setTimeout(() => {
+    const t = setTimeout(() => {
       Animated.timing(opacity, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => {
-        router.replace(user ? "/(tabs)" : "/(auth)");
+        router.replace(authenticated ? "/(tabs)" : "/(auth)");
       });
     }, 1400);
-    return () => clearTimeout(timeout);
-  }, [ready, user]);
+    return () => clearTimeout(t);
+  }, [ready, authenticated]);
 
   return (
     <View style={styles.root}>

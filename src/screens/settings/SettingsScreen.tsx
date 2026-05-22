@@ -5,12 +5,14 @@ import { useState } from "react";
 import { ScreenHeader } from "../../components/layout/ScreenHeader";
 import { Colors } from "../../constants/theme";
 import { useAuth } from "../../context/AuthContext";
+import { usePrivy } from "@privy-io/expo";
 import { shortenAddress } from "../../utils/format";
 
 const c = Colors.dark;
 
 export default function SettingsScreen() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
+  const { logout } = usePrivy();
   const [isDark, setIsDark] = useState(true);
   const [notifStream, setNotifStream] = useState(true);
   const [notifPayout, setNotifPayout] = useState(true);
