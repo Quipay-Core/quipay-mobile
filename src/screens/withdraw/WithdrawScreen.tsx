@@ -1,60 +1,46 @@
-import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, Dimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useState } from "react";
-import { ScreenHeader } from "../../components/layout/ScreenHeader";
-import { Colors } from "../../constants/theme";
+import { Colors, YellowGradient } from "../../constants/theme";
 
 const c = Colors.dark;
+const { height: SH } = Dimensions.get("window");
 const AVAILABLE = "0.00";
 
 export default function WithdrawScreen() {
   const [amount, setAmount] = useState("");
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.background }}>
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-
-        <ScreenHeader title="Withdraw" subtitle="Send your earnings to your wallet" />
-
-        {/* Balance */}
-        <View style={styles.balanceCard}>
-          <Text style={styles.balanceLabel}>Available to Withdraw</Text>
-          <Text style={styles.balanceValue}>{AVAILABLE} <Text style={styles.balanceCurrency}>XLM</Text></Text>
-          <View style={styles.networkRow}>
-            <View style={styles.networkBadge}>
-              <View style={styles.greenDot} />
-              <Text style={styles.networkText}>Quipay Network</Text>
-            </View>
+    <View style={styles.root}>
+      <LinearGradient colors={YellowGradient.colors} start={YellowGradient.start} end={YellowGradient.end} style={styles.header}>
+        <SafeAreaView edges={["top"]} style={styles.headerInner}>
+          <Text style={styles.title}>Withdraw</Text>
+          <View>
+            <Text style={styles.balanceLabel}>AVAILABLE</Text>
+            <Text style={styles.balanceValue}>{AVAILABLE} <Text style={styles.balanceUnit}>XLM</Text></Text>
           </View>
-        </View>
+        </SafeAreaView>
+      </LinearGradient>
 
-        {/* Amount input */}
+      <ScrollView style={styles.card} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.cardContent}>
         <Text style={styles.fieldLabel}>Amount</Text>
         <View style={styles.inputRow}>
-          <TextInput
-            style={styles.input}
-            placeholder="0.00"
-            placeholderTextColor={c.textSubtle}
-            value={amount}
-            onChangeText={setAmount}
-            keyboardType="decimal-pad"
-          />
+          <TextInput style={styles.input} placeholder="0.00" placeholderTextColor={c.textSubtle} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" />
           <TouchableOpacity style={styles.maxBtn} onPress={() => setAmount(AVAILABLE)}>
             <Text style={styles.maxBtnText}>MAX</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Quick % */}
         <View style={styles.quickRow}>
-          {["25%", "50%", "75%", "100%"].map((pct) => (
+          {["25%", "50%", "75%", "100%"].map(pct => (
             <TouchableOpacity key={pct} style={styles.pctBtn}>
               <Text style={styles.pctBtnText}>{pct}</Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* Destination */}
         <Text style={styles.fieldLabel}>To</Text>
         <View style={styles.destinationCard}>
           <Ionicons name="wallet-outline" size={18} color={c.textSubtle} />
@@ -64,50 +50,38 @@ export default function WithdrawScreen() {
           </View>
         </View>
 
-        {/* Summary */}
         {amount !== "" && (
           <View style={styles.summary}>
-            {[
-              { label: "Amount",           value: `${amount} XLM` },
-              { label: "Network fee",      value: "~0.00001 XLM"  },
-              { label: "You will receive", value: `${amount} XLM` },
-            ].map(({ label, value }) => (
-              <View key={label} style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>{label}</Text>
-                <Text style={styles.summaryValue}>{value}</Text>
+            {[["Amount", `${amount} XLM`], ["Network fee", "~0.00001 XLM"], ["You will receive", `${amount} XLM`]].map(([l, v]) => (
+              <View key={l} style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>{l}</Text>
+                <Text style={styles.summaryValue}>{v}</Text>
               </View>
             ))}
           </View>
         )}
 
-        {/* CTA */}
-        <TouchableOpacity
-          style={[styles.withdrawBtn, !amount && styles.withdrawBtnDisabled]}
-          disabled={!amount}
-        >
+        <TouchableOpacity style={[styles.withdrawBtn, !amount && styles.withdrawBtnDisabled]} disabled={!amount}>
           <Ionicons name="arrow-up-circle-outline" size={20} color={amount ? "#000" : c.textSubtle} />
           <Text style={[styles.withdrawBtnText, !amount && { color: c.textSubtle }]}>Withdraw Now</Text>
         </TouchableOpacity>
 
-        <Text style={styles.disclaimer}>
-          Withdrawals go directly to your connected wallet. Transactions are irreversible.
-        </Text>
-
+        <Text style={styles.disclaimer}>Withdrawals go directly to your connected wallet. Transactions are irreversible.</Text>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container:           { flex: 1, paddingHorizontal: 20 },
-  balanceCard:         { backgroundColor: c.card, borderRadius: 20, padding: 20, marginBottom: 24, borderWidth: 1, borderColor: c.border },
-  balanceLabel:        { fontFamily: "Urbanist_600SemiBold", fontSize: 12, color: c.textSubtle, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 8 },
-  balanceValue:        { fontFamily: "Urbanist_900Black", fontSize: 40, color: c.text, letterSpacing: -2, marginBottom: 12 },
-  balanceCurrency:     { fontSize: 22, color: c.textMuted, letterSpacing: 0 },
-  networkRow:          { flexDirection: "row" },
-  networkBadge:        { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(34,197,94,0.08)", borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
-  greenDot:            { width: 6, height: 6, borderRadius: 3, backgroundColor: "#22c55e" },
-  networkText:         { fontFamily: "Urbanist_500Medium", fontSize: 12, color: "#22c55e" },
+  root:                { flex: 1, backgroundColor: "#F5C249" },
+  header:              { minHeight: SH * 0.25 },
+  headerInner:         { paddingHorizontal: 20, paddingBottom: 20, justifyContent: "center", gap: 4, flex: 1 },
+  title:               { fontFamily: "Urbanist_900Black", fontSize: 32, color: "#000", letterSpacing: -1, paddingTop: 4 },
+  balanceLabel:        { fontFamily: "Urbanist_600SemiBold", fontSize: 11, color: "rgba(0,0,0,0.5)", letterSpacing: 1 },
+  balanceValue:        { fontFamily: "Urbanist_900Black", fontSize: 36, color: "#000", letterSpacing: -1.5 },
+  balanceUnit:         { fontSize: 16, color: "rgba(0,0,0,0.5)", letterSpacing: 0 },
+  card:                { flex: 1, backgroundColor: "#000", borderTopLeftRadius: 28, borderTopRightRadius: 28, marginTop: -20 },
+  cardContent:         { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 100 },
   fieldLabel:          { fontFamily: "Urbanist_600SemiBold", fontSize: 13, color: c.text, marginBottom: 8 },
   inputRow:            { flexDirection: "row", alignItems: "center", backgroundColor: c.card, borderRadius: 14, borderWidth: 1, borderColor: c.border, marginBottom: 10 },
   input:               { flex: 1, fontFamily: "Urbanist_700Bold", fontSize: 20, color: c.text, paddingHorizontal: 16, paddingVertical: 14 },

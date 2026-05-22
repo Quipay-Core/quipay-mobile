@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-  View, Text, TouchableOpacity, TextInput,
+  View, Text, TouchableOpacity, TextInput, Alert,
   StyleSheet, Dimensions, ScrollView, ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -8,7 +8,7 @@ import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useLoginWithEmail, useLoginWithOAuth, usePrivy } from "@privy-io/expo";
+import { useLoginWithEmail, useLoginWithOAuth } from "@privy-io/expo";
 import { LogoIcon } from "../../components/ui/Logo";
 import { YellowGradient } from "../../constants/theme";
 
@@ -18,7 +18,6 @@ const BORDER = "#1a1a1a";
 const ACCENT = "#F5C249";
 
 export default function ConnectScreen() {
-  const { logout } = usePrivy();
   const { sendCode, loginWithCode, state: emailState } = useLoginWithEmail({
     onLoginSuccess() { router.replace("/(tabs)"); },
   });
@@ -26,28 +25,54 @@ export default function ConnectScreen() {
     onLoginSuccess() { router.replace("/(tabs)"); },
   });
 
-  const [email,     setEmail]     = useState("");
-  const [code,      setCode]      = useState("");
-  const [codeSent,  setCodeSent]  = useState(false);
+  const [email,    setEmail]    = useState("");
+  const [code,     setCode]     = useState("");
+  const [codeSent, setCodeSent] = useState(false);
 
-  const isLoading = emailState.status === "sending-code"
-    || emailState.status === "awaiting-code-input"
-    || emailState.status === "submitting-code"
-    || oauthState.status === "loading";
+  // Only "sending-code" and "submitting-code" are actual loading states.
+  // "awaiting-code-input" means the code was sent successfully — NOT loading.
+  const isSendingCode  = emailState.status === "sending-code";
+  const isSubmitting   = emailState.status === "submitting-code";
+  const isOAuthLoading = oauthState.status === "loading";
 
   async function handleSendCode() {
     if (!email.trim()) return;
-    await sendCode({ email: email.trim().toLowerCase() });
-    setCodeSent(true);
+    try {
+      await sendCode({ email: email.trim().toLowerCase() });
+      setCodeSent(true);
+    } catch (e: any) {
+      Alert.alert("Error", e?.message ?? "Failed to send code. Please try again.");
+    }
   }
 
   async function handleVerifyCode() {
     if (!code.trim()) return;
-    await loginWithCode({ code: code.trim(), email: email.trim().toLowerCase() });
+    try {
+      await loginWithCode({ code: code.trim(), email: email.trim().toLowerCase() });
+    } catch (e: any) {
+      const msg: string = e?.message ?? "";
+      Alert.alert(
+        "Invalid code",
+        msg.toLowerCase().includes("invalid") || msg.toLowerCase().includes("expired")
+          ? "The code is invalid or has expired. Tap OK to request a new one."
+          : "Verification failed. Please try again.",
+        [{ text: "OK", onPress: () => { setCode(""); setCodeSent(false); } }]
+      );
+    }
   }
 
   async function handleOAuth(provider: "google" | "apple") {
-    await oauthLogin({ provider });
+    try {
+      await oauthLogin({ provider });
+      router.replace("/(tabs)");
+    } catch (e: any) {
+      const msg: string = e?.message ?? "";
+      if (msg.includes("Already logged in")) {
+        router.replace("/(tabs)");
+      } else {
+        Alert.alert("Login failed", msg || "Something went wrong.");
+      }
+    }
   }
 
   return (
@@ -103,12 +128,12 @@ export default function ConnectScreen() {
               />
             </View>
             <TouchableOpacity
-              style={[styles.primaryBtn, (!email || isLoading) && styles.btnDisabled]}
+              style={[styles.primaryBtn, (!email || isSendingCode) && styles.btnDisabled]}
               onPress={handleSendCode}
-              disabled={!email || isLoading}
+              disabled={!email || isSendingCode}
               activeOpacity={0.85}
             >
-              {isLoading
+              {isSendingCode
                 ? <ActivityIndicator color="#000" size="small" />
                 : <>
                     <Text style={styles.primaryBtnText}>Continue with Email</Text>
@@ -129,9 +154,9 @@ export default function ConnectScreen() {
             {/* Social */}
             <View style={styles.socialRow}>
               <TouchableOpacity
-                style={[styles.socialBtn, isLoading && styles.btnDisabled]}
+                style={[styles.socialBtn, isOAuthLoading && styles.btnDisabled]}
                 onPress={() => handleOAuth("google")}
-                disabled={isLoading}
+                disabled={isOAuthLoading}
                 activeOpacity={0.75}
               >
                 {oauthState.status === "loading"
@@ -144,9 +169,9 @@ export default function ConnectScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.socialBtn, isLoading && styles.btnDisabled]}
+                style={[styles.socialBtn, isOAuthLoading && styles.btnDisabled]}
                 onPress={() => handleOAuth("apple")}
-                disabled={isLoading}
+                disabled={isOAuthLoading}
                 activeOpacity={0.75}
               >
                 {oauthState.status === "loading"
@@ -176,12 +201,12 @@ export default function ConnectScreen() {
               />
             </View>
             <TouchableOpacity
-              style={[styles.primaryBtn, (!code || isLoading) && styles.btnDisabled]}
+              style={[styles.primaryBtn, (!code || isSubmitting) && styles.btnDisabled]}
               onPress={handleVerifyCode}
-              disabled={!code || isLoading}
+              disabled={!code || isSubmitting}
               activeOpacity={0.85}
             >
-              {isLoading
+              {isSubmitting
                 ? <ActivityIndicator color="#000" size="small" />
                 : <Text style={styles.primaryBtnText}>Verify Code</Text>
               }

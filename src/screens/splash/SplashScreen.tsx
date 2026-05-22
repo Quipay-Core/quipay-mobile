@@ -5,10 +5,20 @@ import { LogoIcon } from "../../components/ui/Logo";
 import { useAuth } from "../../context/AuthContext";
 
 export default function SplashScreen() {
-  const { ready, authenticated } = useAuth();
-  const opacity = useRef(new Animated.Value(0)).current;
-  const scale   = useRef(new Animated.Value(0.85)).current;
+  const { authenticated, ready } = useAuth();
+  const opacity   = useRef(new Animated.Value(0)).current;
+  const scale     = useRef(new Animated.Value(0.85)).current;
+  const navigated = useRef(false);
 
+  function goNext() {
+    if (navigated.current) return;
+    navigated.current = true;
+    Animated.timing(opacity, { toValue: 0, duration: 250, useNativeDriver: true }).start(() => {
+      router.replace(authenticated ? "/(tabs)" : "/(auth)");
+    });
+  }
+
+  // Fade + scale logo in
   useEffect(() => {
     Animated.parallel([
       Animated.timing(opacity, { toValue: 1, duration: 500, useNativeDriver: true }),
@@ -16,15 +26,18 @@ export default function SplashScreen() {
     ]).start();
   }, []);
 
+  // Navigate as soon as Privy is ready
   useEffect(() => {
     if (!ready) return;
-    const t = setTimeout(() => {
-      Animated.timing(opacity, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => {
-        router.replace(authenticated ? "/(tabs)" : "/(auth)");
-      });
-    }, 1400);
+    const t = setTimeout(goNext, 900);
     return () => clearTimeout(t);
-  }, [ready, authenticated]);
+  }, [ready]);
+
+  // Hard fallback — always escape splash after 4 seconds regardless of Privy state
+  useEffect(() => {
+    const t = setTimeout(goNext, 4000);
+    return () => clearTimeout(t);
+  }, []);
 
   return (
     <View style={styles.root}>

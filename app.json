@@ -6,12 +6,11 @@
     "scheme": "quipay",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "automatic",
 
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.quipay.app",
-      "usesAppleSignIn": true
+      "bundleIdentifier": "com.quipay.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -27,8 +26,7 @@
     },
     "plugins": [
       "expo-router",
-      "expo-font",
-      "expo-apple-authentication"
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true

@@ -32,6 +32,8 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
+        {/* Default dark icons — correct for yellow headers across the whole app */}
+        <StatusBar style="dark" />
         <PrivyProvider
           appId={PRIVY_APP_ID}
           clientId={PRIVY_CLIENT_ID}
@@ -42,7 +44,6 @@ export default function RootLayout() {
           }}
         >
           <AuthProvider>
-            <StatusBar style="auto" />
             <Stack
               screenOptions={{
                 headerShown: false,
@@ -53,7 +54,6 @@ export default function RootLayout() {
               <Stack.Screen name="index"  options={{ headerShown: false }} />
               <Stack.Screen name="(auth)" options={{ headerShown: false }} />
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="+not-found" />
             </Stack>
           </AuthProvider>
         </PrivyProvider>
