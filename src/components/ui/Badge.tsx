@@ -10,7 +10,7 @@ interface BadgeProps {
 
 const VARIANT_STYLES: Record<BadgeVariant, { bg: string; text: string }> = {
   accent:  { bg: "rgba(250,204,21,0.12)",  text: Colors.dark.accent   },
-  success: { bg: "rgba(34,197,94,0.1)",    text: "#22c55e"            },
+  success: { bg: "rgba(245,194,73,0.1)",    text: "#F5C249"            },
   error:   { bg: "rgba(239,68,68,0.1)",    text: "#ef4444"            },
   muted:   { bg: "rgba(255,255,255,0.06)", text: Colors.dark.textMuted },
 };

@@ -10,7 +10,7 @@ export const Colors = {
     textMuted:    "#737373",
     textSubtle:   "#525252",
     error:        "#ef4444",
-    success:      "#22c55e",
+    success:      "#F5C249",
   },
   light: {
     background:   "#ffffff",

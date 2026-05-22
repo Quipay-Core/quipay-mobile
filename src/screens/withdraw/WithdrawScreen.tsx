@@ -7,7 +7,7 @@ import { Colors, YellowGradient } from "../../constants/theme";
 
 const c = Colors.dark;
 const { height: SH } = Dimensions.get("window");
-const AVAILABLE = "0.00";
+const AVAILABLE = "$1,240.00";
 
 export default function WithdrawScreen() {
   const [amount, setAmount] = useState("");
@@ -19,7 +19,7 @@ export default function WithdrawScreen() {
           <Text style={styles.title}>Withdraw</Text>
           <View>
             <Text style={styles.balanceLabel}>AVAILABLE</Text>
-            <Text style={styles.balanceValue}>{AVAILABLE} <Text style={styles.balanceUnit}>XLM</Text></Text>
+            <Text style={styles.balanceValue}>{AVAILABLE} <Text style={styles.balanceUnit}>USDC</Text></Text>
           </View>
         </SafeAreaView>
       </LinearGradient>
@@ -52,7 +52,7 @@ export default function WithdrawScreen() {
 
         {amount !== "" && (
           <View style={styles.summary}>
-            {[["Amount", `${amount} XLM`], ["Network fee", "~0.00001 XLM"], ["You will receive", `${amount} XLM`]].map(([l, v]) => (
+            {[["Amount", `${amount} USDC`], ["Network fee", "~$0.001"], ["You will receive", `${amount} USDC`]].map(([l, v]) => (
               <View key={l} style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>{l}</Text>
                 <Text style={styles.summaryValue}>{v}</Text>
@@ -92,8 +92,8 @@ const styles = StyleSheet.create({
   pctBtnText:          { fontFamily: "Urbanist_600SemiBold", fontSize: 13, color: c.textMuted },
   destinationCard:     { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: c.card, borderRadius: 14, padding: 16, marginBottom: 24, borderWidth: 1, borderColor: c.border },
   destinationText:     { flex: 1, fontFamily: "Urbanist_500Medium", fontSize: 14, color: c.text },
-  connectedBadge:      { backgroundColor: "rgba(34,197,94,0.1)", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
-  connectedText:       { fontFamily: "Urbanist_600SemiBold", fontSize: 11, color: "#22c55e" },
+  connectedBadge:      { backgroundColor: "rgba(245,194,73,0.1)", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
+  connectedText:       { fontFamily: "Urbanist_600SemiBold", fontSize: 11, color: "#F5C249" },
   summary:             { backgroundColor: c.card, borderRadius: 14, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: c.border, gap: 10 },
   summaryRow:          { flexDirection: "row", justifyContent: "space-between" },
   summaryLabel:        { fontFamily: "Urbanist_400Regular", fontSize: 13, color: c.textMuted },
