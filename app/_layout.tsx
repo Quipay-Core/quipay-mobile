@@ -1,8 +1,3 @@
-// Polyfills — must be before any other imports
-import "fast-text-encoding";
-import "react-native-get-random-values";
-import "@ethersproject/shims";
-
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import {
