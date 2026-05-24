@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   View, Text, TouchableOpacity, TextInput, Alert,
   StyleSheet, Dimensions, ScrollView, ActivityIndicator,
@@ -11,6 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLoginWithEmail, useLoginWithOAuth } from "@privy-io/expo";
 import { LogoIcon } from "../../components/ui/Logo";
 import { YellowGradient } from "../../constants/theme";
+import { useAuth } from "../../context/AuthContext";
 
 const { height } = Dimensions.get("window");
 const CARD   = "#111111";
@@ -18,6 +19,12 @@ const BORDER = "#1a1a1a";
 const ACCENT = "#F5C249";
 
 export default function ConnectScreen() {
+  const { authenticated } = useAuth();
+
+  useEffect(() => {
+    if (authenticated) router.replace("/(tabs)");
+  }, [authenticated]);
+
   const { sendCode, loginWithCode, state: emailState } = useLoginWithEmail({
     onLoginSuccess() { router.replace("/(tabs)"); },
   });

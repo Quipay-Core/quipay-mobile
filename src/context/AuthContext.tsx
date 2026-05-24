@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { usePrivy } from "@privy-io/expo";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { apiFetch } from "../services/api";
 
 const STELLAR_KEY = "@quipay_stellar_address";
 
@@ -27,7 +28,9 @@ const AuthContext = createContext<AuthContextValue>({
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { user: privyUser } = usePrivy();
+  const { user: privyUser, getAccessToken } = usePrivy();
+  const getTokenRef = useRef(getAccessToken);
+  getTokenRef.current = getAccessToken; // always current, never a stale closure
   const [stellarAddress, setStellarAddressState] = useState<string | null>(null);
   const [initialized, setInitialized]            = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -36,12 +39,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (timer.current) clearTimeout(timer.current);
 
     if (privyUser) {
-      // Session found — ready immediately
       setInitialized(true);
     } else {
-      // No session yet — wait 2.5s for Privy to restore stored tokens
-      // before declaring the user as logged out
-      timer.current = setTimeout(() => setInitialized(true), 2500);
+      // Give Privy up to 5s to restore tokens from secure storage on cold start.
+      timer.current = setTimeout(() => setInitialized(true), 5000);
     }
 
     return () => {
@@ -49,10 +50,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [privyUser]);
 
+  // Load stored stellar address and sync worker record with backend on login.
   useEffect(() => {
     if (!privyUser?.id) return;
+
     AsyncStorage.getItem(`${STELLAR_KEY}:${privyUser.id}`)
-      .then(addr => setStellarAddressState(addr))
+      .then(addr => {
+        setStellarAddressState(addr);
+        // Register/upsert worker in DB — safe to call every login; backend uses ON CONFLICT DO UPDATE.
+        // Calling with null walletStellar won't overwrite an existing address (COALESCE).
+        const email =
+          privyUser.email?.address ??
+          (privyUser as any).google?.email ??
+          (privyUser as any).apple?.email;
+        apiFetch("/workers/me/register", () => getTokenRef.current(), {
+          method: "POST",
+          body: JSON.stringify({ walletStellar: addr ?? null, email: email ?? null }),
+        }).catch(() => {}); // non-critical
+      })
       .catch(console.error);
   }, [privyUser?.id]);
 
@@ -60,6 +75,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!privyUser?.id) return;
     await AsyncStorage.setItem(`${STELLAR_KEY}:${privyUser.id}`, address);
     setStellarAddressState(address);
+    // Update worker record with the newly linked stellar address.
+    apiFetch("/workers/me/register", () => getTokenRef.current(), {
+      method: "POST",
+      body: JSON.stringify({ walletStellar: address }),
+    }).catch(() => {}); // non-critical
   }
 
   const authenticated = !!privyUser;

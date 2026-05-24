@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, Switch, TouchableOpacity, StyleSheet, Dimensions } from "react-native";
+import { View, Text, ScrollView, Switch, TouchableOpacity, TextInput, Alert, StyleSheet, Dimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -12,12 +12,26 @@ const c = Colors.dark;
 const { height: SH } = Dimensions.get("window");
 
 export default function SettingsScreen() {
-  const { user } = useAuth();
+  const { user, setStellarAddress } = useAuth();
   const { logout } = usePrivy();
-  const [isDark,       setIsDark]       = useState(true);
-  const [notifStream,  setNotifStream]  = useState(true);
-  const [notifPayout,  setNotifPayout]  = useState(true);
-  const [notifVault,   setNotifVault]   = useState(false);
+  const [isDark,        setIsDark]        = useState(true);
+  const [notifStream,   setNotifStream]   = useState(true);
+  const [notifPayout,   setNotifPayout]   = useState(true);
+  const [notifVault,    setNotifVault]    = useState(false);
+  const [editingWallet, setEditingWallet] = useState(false);
+  const [walletInput,   setWalletInput]   = useState("");
+
+  async function handleSaveWallet() {
+    const addr = walletInput.trim();
+    if (!addr.startsWith("G") || addr.length < 40) {
+      Alert.alert("Invalid address", "Enter a valid Stellar address (starts with G).");
+      return;
+    }
+    await setStellarAddress(addr);
+    setEditingWallet(false);
+    setWalletInput("");
+    Alert.alert("Saved", "Your Stellar address has been linked.");
+  }
 
   return (
     <View style={styles.root}>
@@ -93,6 +107,53 @@ export default function SettingsScreen() {
                   </View>
                 </View>
               </View>
+
+              {/* Stellar wallet link */}
+              {!editingWallet ? (
+                <TouchableOpacity
+                  style={[styles.row, { borderBottomWidth: 1, borderBottomColor: c.border }]}
+                  onPress={() => { setEditingWallet(true); setWalletInput(user.stellarAddress ?? ""); }}
+                >
+                  <View style={styles.rowLeft}>
+                    <View style={[styles.iconBox, { backgroundColor: "rgba(245,194,73,0.1)" }]}>
+                      <Ionicons name="wallet-outline" size={18} color={c.accent} />
+                    </View>
+                    <View>
+                      <Text style={styles.rowLabel}>
+                        {user.stellarAddress ? "Stellar Wallet" : "Link Stellar Wallet"}
+                      </Text>
+                      <Text style={styles.rowSub}>
+                        {user.stellarAddress
+                          ? shortenAddress(user.stellarAddress, 8)
+                          : "Tap to add your Stellar address"}
+                      </Text>
+                    </View>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={c.textSubtle} />
+                </TouchableOpacity>
+              ) : (
+                <View style={[styles.walletEdit, { borderBottomWidth: 1, borderBottomColor: c.border }]}>
+                  <TextInput
+                    style={styles.walletInput}
+                    value={walletInput}
+                    onChangeText={setWalletInput}
+                    placeholder="G... (Stellar address)"
+                    placeholderTextColor={c.textSubtle}
+                    autoCapitalize="characters"
+                    autoCorrect={false}
+                    autoFocus
+                  />
+                  <View style={styles.walletBtns}>
+                    <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditingWallet(false)}>
+                      <Text style={styles.cancelBtnText}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.saveBtn} onPress={handleSaveWallet}>
+                      <Text style={styles.saveBtnText}>Save</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+
               <TouchableOpacity style={styles.row} onPress={logout}>
                 <View style={styles.rowLeft}>
                   <View style={[styles.iconBox, { backgroundColor: "rgba(239,68,68,0.1)" }]}>
@@ -126,4 +187,11 @@ const styles = StyleSheet.create({
   rowLabel:     { fontFamily: "Urbanist_600SemiBold", fontSize: 14, color: c.text },
   rowSub:       { fontFamily: "Urbanist_400Regular", fontSize: 12, color: c.textMuted, marginTop: 1 },
   rowValue:     { fontFamily: "Urbanist_500Medium", fontSize: 13, color: c.textMuted },
+  walletEdit:   { padding: 14, gap: 10 },
+  walletInput:  { fontFamily: "Urbanist_500Medium", fontSize: 14, color: c.text, backgroundColor: "#1a1a1a", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: c.border },
+  walletBtns:   { flexDirection: "row", gap: 8 },
+  cancelBtn:    { flex: 1, alignItems: "center", paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: c.border },
+  cancelBtnText:{ fontFamily: "Urbanist_600SemiBold", fontSize: 13, color: c.textSubtle },
+  saveBtn:      { flex: 1, alignItems: "center", paddingVertical: 10, borderRadius: 10, backgroundColor: c.accent },
+  saveBtnText:  { fontFamily: "Urbanist_700Bold", fontSize: 13, color: "#000" },
 });

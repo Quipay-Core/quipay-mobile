@@ -35,7 +35,7 @@ export default function SplashScreen() {
 
   // Hard fallback — always escape splash after 4 seconds regardless of Privy state
   useEffect(() => {
-    const t = setTimeout(goNext, 4000);
+    const t = setTimeout(goNext, 7000);
     return () => clearTimeout(t);
   }, []);
 
