@@ -26,6 +26,12 @@
       "output": "static",
       "favicon": "./assets/favicon.svg"
     },
+    "updates": {
+      "url": "https://u.expo.dev/01434632-f0a5-47f6-835e-ee70f3b6f6cf"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "plugins": [
       "expo-router",
       "expo-font"
