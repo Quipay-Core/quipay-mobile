@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useRef, useState, ReactNode } fro
 import { usePrivy } from "@privy-io/expo";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { apiFetch } from "../services/api";
+import { MOCK_MODE } from "../services/mockData";
 
 const STELLAR_KEY = "@quipay_stellar_address";
 
@@ -27,7 +28,14 @@ const AuthContext = createContext<AuthContextValue>({
   setStellarAddress: async () => {},
 });
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+const MOCK_USER: AuthUser = {
+  privyId:        "mock-user-001",
+  email:          "tester@quipay.app",
+  name:           "Test User",
+  stellarAddress: "GBXMV5NIFCBKXPFPDUQLXAGJYERQXF7RT2LCIFSJQFKIZNIMJDKUJZ3",
+};
+
+function RealAuthProvider({ children }: { children: ReactNode }) {
   const { user: privyUser, getAccessToken, ready: privyReady } = usePrivy() as any;
   const getTokenRef = useRef(getAccessToken);
   getTokenRef.current = getAccessToken; // always current, never a stale closure
@@ -101,6 +109,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  if (MOCK_MODE) {
+    return (
+      <AuthContext.Provider value={{
+        user:              MOCK_USER,
+        ready:             true,
+        authenticated:     true,
+        setStellarAddress: async () => {},
+      }}>
+        {children}
+      </AuthContext.Provider>
+    );
+  }
+  return <RealAuthProvider>{children}</RealAuthProvider>;
 }
 
 export function useAuth() {
