@@ -1,7 +1,7 @@
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
+import { SafeGradient } from "../../components/ui/SafeGradient";
 import { useState } from "react";
 import { Colors, YellowGradient } from "../../constants/theme";
 import { EmptyState } from "../../components/ui/EmptyState";
@@ -15,12 +15,12 @@ export default function StreamsScreen() {
 
   return (
     <View style={styles.root}>
-      <LinearGradient colors={YellowGradient.colors} start={YellowGradient.start} end={YellowGradient.end} style={styles.header}>
+      <SafeGradient colors={YellowGradient.colors} start={YellowGradient.start} end={YellowGradient.end} style={styles.header}>
         <SafeAreaView edges={["top"]} style={styles.headerInner}>
           <Text style={styles.title}>Streams</Text>
           <Text style={styles.sub}>Payment streams from your employer</Text>
         </SafeAreaView>
-      </LinearGradient>
+      </SafeGradient>
 
       <ScrollView style={styles.card} showsVerticalScrollIndicator={false} contentContainerStyle={styles.cardContent}>
         <View style={styles.tabs}>

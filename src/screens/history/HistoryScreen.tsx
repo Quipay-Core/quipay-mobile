@@ -11,7 +11,7 @@ const c = Colors.dark;
 
 export default function HistoryScreen() {
   const { user } = useAuth();
-  const { records, loading } = useWithdrawalHistory(user?.stellarAddress ?? null);
+  const { records, loading, error } = useWithdrawalHistory(user?.stellarAddress ?? null);
 
   const totalWithdrawn = records.reduce((sum, r) => sum + parseFloat(r.amount), 0);
 
@@ -51,6 +51,14 @@ export default function HistoryScreen() {
 
         {loading ? (
           <ActivityIndicator color={c.accent} style={{ marginTop: 40 }} />
+        ) : error ? (
+          <View style={styles.empty}>
+            <View style={styles.emptyIcon}>
+              <Ionicons name="cloud-offline-outline" size={28} color="#ef4444" />
+            </View>
+            <Text style={styles.emptyTitle}>Could not load history</Text>
+            <Text style={styles.emptySub}>{error}</Text>
+          </View>
         ) : records.length === 0 ? (
           <View style={styles.empty}>
             <View style={styles.emptyIcon}>

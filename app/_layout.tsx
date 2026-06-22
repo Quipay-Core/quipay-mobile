@@ -13,6 +13,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { PrivyProvider } from "@privy-io/expo";
 import { AuthProvider } from "../src/context/AuthContext";
+import { ErrorBoundary } from "../src/components/ErrorBoundary";
 
 const PRIVY_APP_ID    = process.env.EXPO_PUBLIC_PRIVY_APP_ID    ?? "";
 const PRIVY_CLIENT_ID = process.env.EXPO_PUBLIC_PRIVY_CLIENT_ID ?? "";
@@ -44,6 +45,7 @@ export default function RootLayout() {
           }}
         >
           <AuthProvider>
+            <ErrorBoundary>
             <Stack
               screenOptions={{
                 headerShown: false,
@@ -55,6 +57,7 @@ export default function RootLayout() {
               <Stack.Screen name="(auth)" options={{ headerShown: false }} />
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             </Stack>
+            </ErrorBoundary>
           </AuthProvider>
         </PrivyProvider>
       </SafeAreaProvider>

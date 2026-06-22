@@ -1,9 +1,9 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator } from "react-native";
-import { useState } from "react";
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator, RefreshControl } from "react-native";
+import { useState, useCallback } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { FontAwesome5 } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
+import { SafeGradient } from "../../components/ui/SafeGradient";
 import { Colors, YellowGradient } from "../../constants/theme";
 import { LogoWordmark } from "../../components/ui/Logo";
 import { useAuth } from "../../context/AuthContext";
@@ -22,9 +22,16 @@ export default function EarningsScreen() {
   const { logout } = usePrivy();
   const [visible, setVisible] = useState(false);
 
-  const { available, streamingPerSec, withdrawn, loading: balanceLoading } = useWorkerBalance();
-  const { streams, loading: streamsLoading } = useWorkerStreams();
-  const { records: payouts, loading: historyLoading } = useWithdrawalHistory(user?.stellarAddress ?? null);
+  const { available, streamingPerSec, withdrawn, loading: balanceLoading, error: balanceError, refetch: refetchBalance } = useWorkerBalance();
+  const { streams, loading: streamsLoading, error: streamsError, refetch: refetchStreams } = useWorkerStreams();
+  const { records: payouts, loading: historyLoading, error: historyError } = useWithdrawalHistory(user?.stellarAddress ?? null);
+
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([refetchBalance(), refetchStreams()]);
+    setRefreshing(false);
+  }, [refetchBalance, refetchStreams]);
 
   const activeStreams = streams.filter(s => s.status === "active");
   const safe = (n: number) => (isNaN(n) || !isFinite(n) ? 0 : n);
@@ -43,13 +50,13 @@ export default function EarningsScreen() {
   };
 
   const displayName = user?.name?.split(" ")[0] ?? user?.email?.split("@")[0] ?? "there";
-  const isLoading = balanceLoading || streamsLoading;
+  const isLoading = balanceLoading || streamsLoading || historyLoading;
 
   return (
     <View style={styles.root}>
 
       {/* Yellow header */}
-      <LinearGradient
+      <SafeGradient
         colors={YellowGradient.colors}
         start={YellowGradient.start}
         end={YellowGradient.end}
@@ -77,13 +84,14 @@ export default function EarningsScreen() {
             <Text style={styles.heroSub}>Total earned · USDC</Text>
           </View>
         </SafeAreaView>
-      </LinearGradient>
+      </SafeGradient>
 
       {/* Black card */}
       <ScrollView
         style={styles.card}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.cardContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={c.accent} />}
       >
         {/* Stats */}
         <View style={styles.grid}>
@@ -120,6 +128,16 @@ export default function EarningsScreen() {
             <Ionicons name="warning-outline" size={16} color="#F5C249" />
             <Text style={styles.noWalletText}>
               Link your Stellar wallet in Settings to see live earnings.
+            </Text>
+          </View>
+        )}
+
+        {/* Data fetch errors */}
+        {(balanceError || streamsError) && (
+          <View style={styles.errorBanner}>
+            <Ionicons name="cloud-offline-outline" size={16} color="#ef4444" />
+            <Text style={styles.errorBannerText}>
+              {balanceError ?? streamsError}
             </Text>
           </View>
         )}
@@ -183,6 +201,8 @@ export default function EarningsScreen() {
         <Text style={styles.sectionTitle}>Recent Payouts</Text>
         {historyLoading ? (
           <ActivityIndicator color={c.accent} />
+        ) : historyError ? (
+          <Text style={styles.emptyText}>{historyError}</Text>
         ) : payouts.length === 0 ? (
           <Text style={styles.emptyText}>No payouts yet</Text>
         ) : (
@@ -248,6 +268,8 @@ const styles = StyleSheet.create({
 
   noWalletBanner:  { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "rgba(245,194,73,0.06)", borderRadius: 12, padding: 12, marginBottom: 20, borderWidth: 1, borderColor: "rgba(245,194,73,0.15)" },
   noWalletText:    { fontFamily: "Urbanist_500Medium", fontSize: 13, color: c.textSubtle, flex: 1 },
+  errorBanner:     { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "rgba(239,68,68,0.08)", borderRadius: 12, padding: 12, marginBottom: 20, borderWidth: 1, borderColor: "rgba(239,68,68,0.2)" },
+  errorBannerText: { fontFamily: "Urbanist_500Medium", fontSize: 13, color: "#ef4444", flex: 1 },
 
   sectionTitle:    { fontFamily: "Urbanist_700Bold", fontSize: 16, color: c.text, marginBottom: 12 },
 

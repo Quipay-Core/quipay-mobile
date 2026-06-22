@@ -1,42 +1,77 @@
-import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, Dimensions } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, StyleSheet, Dimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
+import { SafeGradient } from "../../components/ui/SafeGradient";
 import { useState } from "react";
 import { Colors, YellowGradient } from "../../constants/theme";
+import { useWorkerBalance } from "../../hooks/useWorkerData";
+import { useAuth } from "../../context/AuthContext";
+import { shortenAddress } from "../../utils/format";
 
 const c = Colors.dark;
 const { height: SH } = Dimensions.get("window");
-const AVAILABLE = "$1,240.00";
 
 export default function WithdrawScreen() {
+  const { user } = useAuth();
+  const { available, loading: balanceLoading } = useWorkerBalance();
   const [amount, setAmount] = useState("");
+
+  function handlePct(pct: number) {
+    const val = (available * pct) / 100;
+    setAmount(val > 0 ? val.toFixed(2) : "");
+  }
+
+  function handleWithdraw() {
+    if (!user?.stellarAddress) {
+      Alert.alert("No wallet linked", "Link a Stellar wallet in Settings before withdrawing.");
+      return;
+    }
+    const parsed = parseFloat(amount);
+    if (!amount.trim() || isNaN(parsed) || parsed <= 0) {
+      Alert.alert("Invalid amount", "Enter a valid amount greater than 0.");
+      return;
+    }
+    if (parsed > available) {
+      Alert.alert("Insufficient balance", `You only have ${available.toFixed(2)} USDC available.`);
+      return;
+    }
+    // TODO: call withdraw API
+    Alert.alert("Confirm withdrawal", `Withdraw ${parsed.toFixed(2)} USDC to ${shortenAddress(user.stellarAddress, 6)}?`, [
+      { text: "Cancel", style: "cancel" },
+      { text: "Confirm", onPress: () => { /* call API */ } },
+    ]);
+  }
+
+  const canSubmit = !!amount && !balanceLoading;
 
   return (
     <View style={styles.root}>
-      <LinearGradient colors={YellowGradient.colors} start={YellowGradient.start} end={YellowGradient.end} style={styles.header}>
+      <SafeGradient colors={YellowGradient.colors} start={YellowGradient.start} end={YellowGradient.end} style={styles.header}>
         <SafeAreaView edges={["top"]} style={styles.headerInner}>
           <Text style={styles.title}>Withdraw</Text>
           <View>
             <Text style={styles.balanceLabel}>AVAILABLE</Text>
-            <Text style={styles.balanceValue}>{AVAILABLE} <Text style={styles.balanceUnit}>USDC</Text></Text>
+            {balanceLoading
+              ? <ActivityIndicator color="#000" style={{ marginTop: 4 }} />
+              : <Text style={styles.balanceValue}>{available.toFixed(2)} <Text style={styles.balanceUnit}>USDC</Text></Text>
+            }
           </View>
         </SafeAreaView>
-      </LinearGradient>
+      </SafeGradient>
 
       <ScrollView style={styles.card} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.cardContent}>
         <Text style={styles.fieldLabel}>Amount</Text>
         <View style={styles.inputRow}>
           <TextInput style={styles.input} placeholder="0.00" placeholderTextColor={c.textSubtle} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" />
-          <TouchableOpacity style={styles.maxBtn} onPress={() => setAmount(AVAILABLE)}>
+          <TouchableOpacity style={styles.maxBtn} onPress={() => setAmount(available > 0 ? available.toFixed(2) : "")}>
             <Text style={styles.maxBtnText}>MAX</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.quickRow}>
-          {["25%", "50%", "75%", "100%"].map(pct => (
-            <TouchableOpacity key={pct} style={styles.pctBtn}>
-              <Text style={styles.pctBtnText}>{pct}</Text>
+          {([25, 50, 75, 100] as const).map(pct => (
+            <TouchableOpacity key={pct} style={styles.pctBtn} onPress={() => handlePct(pct)}>
+              <Text style={styles.pctBtnText}>{pct}%</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -44,10 +79,14 @@ export default function WithdrawScreen() {
         <Text style={styles.fieldLabel}>To</Text>
         <View style={styles.destinationCard}>
           <Ionicons name="wallet-outline" size={18} color={c.textSubtle} />
-          <Text style={styles.destinationText}>Your connected wallet</Text>
-          <View style={styles.connectedBadge}>
-            <Text style={styles.connectedText}>Connected</Text>
-          </View>
+          <Text style={styles.destinationText}>
+            {user?.stellarAddress ? shortenAddress(user.stellarAddress, 8) : "No wallet linked — add one in Settings"}
+          </Text>
+          {user?.stellarAddress && (
+            <View style={styles.connectedBadge}>
+              <Text style={styles.connectedText}>Connected</Text>
+            </View>
+          )}
         </View>
 
         {amount !== "" && (
@@ -61,9 +100,9 @@ export default function WithdrawScreen() {
           </View>
         )}
 
-        <TouchableOpacity style={[styles.withdrawBtn, !amount && styles.withdrawBtnDisabled]} disabled={!amount}>
-          <Ionicons name="arrow-up-circle-outline" size={20} color={amount ? "#000" : c.textSubtle} />
-          <Text style={[styles.withdrawBtnText, !amount && { color: c.textSubtle }]}>Withdraw Now</Text>
+        <TouchableOpacity style={[styles.withdrawBtn, !canSubmit && styles.withdrawBtnDisabled]} disabled={!canSubmit} onPress={handleWithdraw}>
+          <Ionicons name="arrow-up-circle-outline" size={20} color={canSubmit ? "#000" : c.textSubtle} />
+          <Text style={[styles.withdrawBtnText, !canSubmit && { color: c.textSubtle }]}>Withdraw Now</Text>
         </TouchableOpacity>
 
         <Text style={styles.disclaimer}>Withdrawals go directly to your connected wallet. Transactions are irreversible.</Text>

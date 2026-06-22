@@ -5,7 +5,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { LinearGradient } from "expo-linear-gradient";
+import { SafeGradient } from "../../components/ui/SafeGradient";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useLoginWithEmail, useLoginWithOAuth } from "@privy-io/expo";
@@ -43,9 +43,16 @@ export default function ConnectScreen() {
   const isOAuthLoading = oauthState.status === "loading";
 
   async function handleSendCode() {
-    if (!email.trim()) return;
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed) return;
+    const atIdx = trimmed.indexOf("@");
+    const dotAfterAt = trimmed.lastIndexOf(".");
+    if (atIdx < 1 || dotAfterAt <= atIdx + 1 || dotAfterAt === trimmed.length - 1) {
+      Alert.alert("Invalid email", "Enter a valid email address (e.g. you@example.com).");
+      return;
+    }
     try {
-      await sendCode({ email: email.trim().toLowerCase() });
+      await sendCode({ email: trimmed });
       setCodeSent(true);
     } catch (e: any) {
       Alert.alert("Error", e?.message ?? "Failed to send code. Please try again.");
@@ -73,11 +80,17 @@ export default function ConnectScreen() {
       await oauthLogin({ provider });
       router.replace("/(tabs)");
     } catch (e: any) {
-      const msg: string = e?.message ?? "";
-      if (msg.includes("Already logged in")) {
+      const msg: string = (e?.message ?? "").toLowerCase();
+      const alreadyAuthed =
+        msg.includes("already logged in") ||
+        msg.includes("already authenticated") ||
+        msg.includes("already signed in") ||
+        e?.code === "already_logged_in" ||
+        authenticated;
+      if (alreadyAuthed) {
         router.replace("/(tabs)");
       } else {
-        Alert.alert("Login failed", msg || "Something went wrong.");
+        Alert.alert("Login failed", e?.message || "Something went wrong. Please try again.");
       }
     }
   }
@@ -87,7 +100,7 @@ export default function ConnectScreen() {
       <StatusBar style="dark" />
 
       {/* Yellow gradient top panel */}
-      <LinearGradient
+      <SafeGradient
         colors={YellowGradient.colors}
         start={YellowGradient.start}
         end={YellowGradient.end}
@@ -109,7 +122,7 @@ export default function ConnectScreen() {
             </Text>
           </View>
         </SafeAreaView>
-      </LinearGradient>
+      </SafeGradient>
 
       {/* Black bottom */}
       <ScrollView

@@ -1,12 +1,18 @@
 import { View, Text, ScrollView, Switch, TouchableOpacity, TextInput, Alert, StyleSheet, Dimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
-import { useState } from "react";
+import { SafeGradient } from "../../components/ui/SafeGradient";
+import { useState, useEffect } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Colors, YellowGradient } from "../../constants/theme";
 import { useAuth } from "../../context/AuthContext";
 import { usePrivy } from "@privy-io/expo";
+import { useTheme } from "../../hooks/useTheme";
 import { shortenAddress } from "../../utils/format";
+
+const NOTIF_STREAM_KEY = "@quipay_notif_stream";
+const NOTIF_PAYOUT_KEY = "@quipay_notif_payout";
+const NOTIF_VAULT_KEY  = "@quipay_notif_vault";
 
 const c = Colors.dark;
 const { height: SH } = Dimensions.get("window");
@@ -14,17 +20,33 @@ const { height: SH } = Dimensions.get("window");
 export default function SettingsScreen() {
   const { user, setStellarAddress } = useAuth();
   const { logout } = usePrivy();
-  const [isDark,        setIsDark]        = useState(true);
+  const { isDark, toggleTheme } = useTheme();
   const [notifStream,   setNotifStream]   = useState(true);
   const [notifPayout,   setNotifPayout]   = useState(true);
   const [notifVault,    setNotifVault]    = useState(false);
   const [editingWallet, setEditingWallet] = useState(false);
   const [walletInput,   setWalletInput]   = useState("");
 
+  // Load persisted notification prefs on mount
+  useEffect(() => {
+    AsyncStorage.multiGet([NOTIF_STREAM_KEY, NOTIF_PAYOUT_KEY, NOTIF_VAULT_KEY])
+      .then(([[, s], [, p], [, v]]) => {
+        if (s !== null) setNotifStream(s === "true");
+        if (p !== null) setNotifPayout(p === "true");
+        if (v !== null) setNotifVault(v === "true");
+      })
+      .catch(console.warn);
+  }, []);
+
+  function handleNotifChange(key: string, setter: (v: boolean) => void, val: boolean) {
+    setter(val);
+    AsyncStorage.setItem(key, String(val)).catch(console.warn);
+  }
+
   async function handleSaveWallet() {
     const addr = walletInput.trim();
-    if (!addr.startsWith("G") || addr.length < 40) {
-      Alert.alert("Invalid address", "Enter a valid Stellar address (starts with G).");
+    if (!addr.startsWith("G") || addr.length !== 56) {
+      Alert.alert("Invalid address", "Enter a valid Stellar address (starts with G, exactly 56 characters).");
       return;
     }
     await setStellarAddress(addr);
@@ -35,12 +57,12 @@ export default function SettingsScreen() {
 
   return (
     <View style={styles.root}>
-      <LinearGradient colors={YellowGradient.colors} start={YellowGradient.start} end={YellowGradient.end} style={styles.header}>
+      <SafeGradient colors={YellowGradient.colors} start={YellowGradient.start} end={YellowGradient.end} style={styles.header}>
         <SafeAreaView edges={["top"]} style={styles.headerInner}>
           <Text style={styles.title}>Settings</Text>
           {user && <Text style={styles.sub}>{user.email ?? user.name ?? "Worker"}</Text>}
         </SafeAreaView>
-      </LinearGradient>
+      </SafeGradient>
 
       <ScrollView style={styles.card} showsVerticalScrollIndicator={false} contentContainerStyle={styles.cardContent}>
 
@@ -56,16 +78,16 @@ export default function SettingsScreen() {
                 <Text style={styles.rowSub}>Currently {isDark ? "dark" : "light"}</Text>
               </View>
             </View>
-            <Switch value={isDark} onValueChange={setIsDark} trackColor={{ false: c.border, true: "rgba(245,194,73,0.3)" }} thumbColor={isDark ? c.accent : c.textSubtle} />
+            <Switch value={isDark} onValueChange={toggleTheme} trackColor={{ false: c.border, true: "rgba(245,194,73,0.3)" }} thumbColor={isDark ? c.accent : c.textSubtle} />
           </View>
         </View>
 
         <Text style={styles.sectionTitle}>Notifications</Text>
         <View style={styles.group}>
           {[
-            { label: "Stream paid out",    sub: "When your stream pays out",  value: notifPayout, set: setNotifPayout },
-            { label: "New stream created", sub: "Employer created a stream",  value: notifStream, set: setNotifStream },
-            { label: "Low vault balance",  sub: "Employer treasury is low",   value: notifVault,  set: setNotifVault  },
+            { label: "Stream paid out",    sub: "When your stream pays out",  value: notifPayout, set: (v: boolean) => handleNotifChange(NOTIF_PAYOUT_KEY,  setNotifPayout,  v) },
+            { label: "New stream created", sub: "Employer created a stream",  value: notifStream, set: (v: boolean) => handleNotifChange(NOTIF_STREAM_KEY,  setNotifStream,  v) },
+            { label: "Low vault balance",  sub: "Employer treasury is low",   value: notifVault,  set: (v: boolean) => handleNotifChange(NOTIF_VAULT_KEY,   setNotifVault,   v) },
           ].map(({ label, sub, value, set }, i, arr) => (
             <View key={label} style={[styles.row, i < arr.length - 1 && { borderBottomWidth: 1, borderBottomColor: c.border }]}>
               <View style={styles.rowLeft}>

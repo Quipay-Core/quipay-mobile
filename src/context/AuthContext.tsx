@@ -28,7 +28,7 @@ const AuthContext = createContext<AuthContextValue>({
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { user: privyUser, getAccessToken } = usePrivy();
+  const { user: privyUser, getAccessToken, ready: privyReady } = usePrivy() as any;
   const getTokenRef = useRef(getAccessToken);
   getTokenRef.current = getAccessToken; // always current, never a stale closure
   const [stellarAddress, setStellarAddressState] = useState<string | null>(null);
@@ -38,17 +38,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (timer.current) clearTimeout(timer.current);
 
-    if (privyUser) {
+    // Prefer Privy's own ready flag — resolves as soon as the SDK has finished
+    // attempting to restore a session, with or without a user.
+    if (privyReady || privyUser) {
       setInitialized(true);
     } else {
-      // Give Privy up to 5s to restore tokens from secure storage on cold start.
+      // Fallback: give Privy up to 5s on cold start in case ready is unavailable.
       timer.current = setTimeout(() => setInitialized(true), 5000);
     }
 
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };
-  }, [privyUser]);
+  }, [privyReady, privyUser]);
 
   // Load stored stellar address and sync worker record with backend on login.
   useEffect(() => {
@@ -66,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         apiFetch("/workers/me/register", () => getTokenRef.current(), {
           method: "POST",
           body: JSON.stringify({ walletStellar: addr ?? null, email: email ?? null }),
-        }).catch(() => {}); // non-critical
+        }).catch((err) => console.warn("[AuthContext] worker register failed:", err));
       })
       .catch(console.error);
   }, [privyUser?.id]);
@@ -79,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     apiFetch("/workers/me/register", () => getTokenRef.current(), {
       method: "POST",
       body: JSON.stringify({ walletStellar: address }),
-    }).catch(() => {}); // non-critical
+    }).catch((err) => console.warn("[AuthContext] stellar address sync failed:", err));
   }
 
   const authenticated = !!privyUser;

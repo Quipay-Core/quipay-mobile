@@ -2,7 +2,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from "react-nati
 import { useEffect } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { LinearGradient } from "expo-linear-gradient";
+import { SafeGradient } from "../../components/ui/SafeGradient";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LogoWordmark } from "../../components/ui/Logo";
@@ -24,7 +24,7 @@ export default function WelcomeScreen() {
       <StatusBar style="dark" />
 
       {/* Yellow gradient hero panel */}
-      <LinearGradient
+      <SafeGradient
         colors={YellowGradient.colors}
         start={YellowGradient.start}
         end={YellowGradient.end}
@@ -43,7 +43,7 @@ export default function WelcomeScreen() {
             Receive payments from your employer directly to your wallet — no bank, no delays.
           </Text>
         </SafeAreaView>
-      </LinearGradient>
+      </SafeGradient>
 
       {/* Black bottom */}
       <View style={styles.bottomSection}>
@@ -68,7 +68,7 @@ export default function WelcomeScreen() {
           onPress={() => router.push("/(auth)/connect")}
           activeOpacity={0.85}
         >
-          <LinearGradient
+          <SafeGradient
             colors={YellowGradient.colors}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
@@ -76,7 +76,7 @@ export default function WelcomeScreen() {
           >
             <Text style={styles.primaryBtnText}>Get Started</Text>
             <Ionicons name="arrow-forward" size={18} color="#000" />
-          </LinearGradient>
+          </SafeGradient>
         </TouchableOpacity>
 
       </View>

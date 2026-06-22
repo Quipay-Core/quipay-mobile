@@ -12,7 +12,8 @@ export function useTheme(): {
   toggleTheme: () => void;
 } {
   const system = useColorScheme();
-  const [scheme, setScheme] = useState<"dark" | "light">("dark");
+  // null = not yet loaded from storage; avoids flashing wrong theme on mount
+  const [scheme, setScheme] = useState<"dark" | "light" | null>(null);
 
   useEffect(() => {
     AsyncStorage.getItem(THEME_KEY).then((stored) => {
@@ -21,21 +22,24 @@ export function useTheme(): {
       } else {
         setScheme("dark"); // Quipay defaults to dark
       }
-    });
+    }).catch(() => setScheme("dark"));
   }, []);
 
   const toggleTheme = useCallback(() => {
     setScheme((prev) => {
-      const next = prev === "dark" ? "light" : "dark";
-      AsyncStorage.setItem(THEME_KEY, next);
+      const next = (prev ?? "dark") === "dark" ? "light" : "dark";
+      AsyncStorage.setItem(THEME_KEY, next).catch(console.warn);
       return next;
     });
   }, []);
 
+  // Use dark as the pre-load fallback — matches the app's default
+  const resolved = scheme ?? "dark";
+
   return {
-    colors:      Colors[scheme],
-    isDark:      scheme === "dark",
-    scheme,
+    colors:      Colors[resolved],
+    isDark:      resolved === "dark",
+    scheme:      resolved,
     toggleTheme,
   };
 }
