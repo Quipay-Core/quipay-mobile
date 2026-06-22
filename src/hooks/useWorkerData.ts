@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, MutableRefObject } from "react";
 import { usePrivy } from "@privy-io/expo";
 import { apiFetch, publicFetch } from "../services/api";
+import { MOCK_MODE, MOCK_BALANCE, MOCK_STREAMS, MOCK_HISTORY } from "../services/mockData";
 
 type GetTokenFn = () => Promise<string | null>;
 
@@ -34,6 +35,15 @@ export function useWorkerBalance() {
   const [error, setError]                     = useState<string | null>(null);
 
   const load = useCallback(async () => {
+    if (MOCK_MODE) {
+      const safe = (s: string) => { const n = parseFloat(s); return isNaN(n) ? 0 : n; };
+      setAvailable(safe(MOCK_BALANCE.available));
+      setStreamingPerSec(safe(MOCK_BALANCE.streamingPerSec));
+      setWithdrawn(safe(MOCK_BALANCE.withdrawn));
+      setError(null);
+      setLoading(false);
+      return;
+    }
     try {
       const res = await apiFetch("/workers/me/balance", () => tokenRef.current());
       if (!res.ok) {
@@ -83,6 +93,13 @@ export function useWorkerStreams() {
   const [error, setError]                 = useState<string | null>(null);
 
   const load = useCallback(async () => {
+    if (MOCK_MODE) {
+      setStreams(MOCK_STREAMS as WorkerStream[]);
+      setTotalAvailable(MOCK_STREAMS.reduce((sum, s) => sum + s.available, 0));
+      setError(null);
+      setLoading(false);
+      return;
+    }
     try {
       const res = await apiFetch("/workers/me/streams", () => tokenRef.current());
       if (!res.ok) {
@@ -131,6 +148,11 @@ export function useWithdrawalHistory(stellarAddress: string | null) {
   const [error, setError]     = useState<string | null>(null);
 
   useEffect(() => {
+    if (MOCK_MODE) {
+      setRecords(MOCK_HISTORY as WithdrawalRecord[]);
+      setLoading(false);
+      return;
+    }
     if (!stellarAddress) return;
     setLoading(true);
     setError(null);
