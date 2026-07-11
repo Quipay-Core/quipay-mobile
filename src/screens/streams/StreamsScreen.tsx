@@ -2,15 +2,17 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions } from
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeGradient } from "../../components/ui/SafeGradient";
-import { useState } from "react";
-import { Colors, YellowGradient } from "../../constants/theme";
+import { useState, useMemo } from "react";
+import { YellowGradient, ThemeColors } from "../../constants/theme";
+import { useTheme } from "../../context/ThemeContext";
 import { EmptyState } from "../../components/ui/EmptyState";
 
-const c = Colors.dark;
 const { height: SH } = Dimensions.get("window");
 const TABS = ["Active", "Completed", "Cancelled"] as const;
 
 export default function StreamsScreen() {
+  const { colors: c } = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const [tab, setTab] = useState<typeof TABS[number]>("Active");
 
   return (
@@ -38,7 +40,7 @@ export default function StreamsScreen() {
         />
 
         <View style={styles.infoBox}>
-          <Ionicons name="information-circle-outline" size={16} color={c.accent} />
+          <Ionicons name="information-circle-outline" size={16} color={c.accentText} />
           <Text style={styles.infoText}>Streams are created by your employer. Earnings accumulate in real time and can be withdrawn at any time.</Text>
         </View>
       </ScrollView>
@@ -46,19 +48,19 @@ export default function StreamsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColors) => StyleSheet.create({
   root:          { flex: 1, backgroundColor: "#F5C249" },
   header:        { minHeight: SH * 0.25 },
   headerInner:   { paddingHorizontal: 20, paddingBottom: 20, justifyContent: "center", gap: 4, flex: 1 },
   title:         { fontFamily: "Urbanist_900Black", fontSize: 32, color: "#000", letterSpacing: -1 },
-  sub:           { fontFamily: "Urbanist_500Medium", fontSize: 13, color: "rgba(0,0,0,0.55)", marginTop: 4 },
-  card:          { flex: 1, backgroundColor: "#000", borderTopLeftRadius: 28, borderTopRightRadius: 28, marginTop: -20 },
+  sub:           { fontFamily: "Urbanist_500Medium", fontSize: 14, color: "rgba(0,0,0,0.55)", marginTop: 4 },
+  card:          { flex: 1, backgroundColor: c.background, borderTopLeftRadius: 28, borderTopRightRadius: 28, marginTop: -20 },
   cardContent:   { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 100 },
   tabs:          { flexDirection: "row", gap: 8, marginBottom: 20 },
   tabBtn:        { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: c.card, borderWidth: 1, borderColor: c.border },
   tabActive:     { backgroundColor: c.accent, borderColor: c.accent },
-  tabText:       { fontFamily: "Urbanist_600SemiBold", fontSize: 13, color: c.textMuted },
+  tabText:       { fontFamily: "Urbanist_600SemiBold", fontSize: 14, color: c.textMuted },
   tabTextActive: { color: "#000" },
-  infoBox:       { flexDirection: "row", gap: 10, backgroundColor: "rgba(245,194,73,0.06)", borderRadius: 14, padding: 14, borderWidth: 1, borderColor: "rgba(245,194,73,0.15)", marginTop: 16 },
-  infoText:      { flex: 1, fontFamily: "Urbanist_400Regular", fontSize: 13, color: c.textMuted, lineHeight: 19 },
+  infoBox:       { flexDirection: "row", gap: 10, backgroundColor: c.accentMuted, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: c.accentBorder, marginTop: 16 },
+  infoText:      { flex: 1, fontFamily: "Urbanist_400Regular", fontSize: 14, color: c.textMuted, lineHeight: 19 },
 });

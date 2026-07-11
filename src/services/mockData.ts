@@ -37,6 +37,37 @@ export const MOCK_STREAMS = [
   },
 ];
 
+export const MOCK_NOTIFICATIONS = [
+  {
+    id:        "n-001",
+    type:      "payout" as const,
+    title:     "Payout received",
+    body:      "200.00 USDC from stream #stream-001 landed in your wallet.",
+    createdAt: new Date(Date.now() - 1000 * 60 * 8).toISOString(),
+  },
+  {
+    id:        "n-002",
+    type:      "stream" as const,
+    title:     "New stream created",
+    body:      "Your employer started streaming 0.0000144 USDC/sec to you.",
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
+  },
+  {
+    id:        "n-003",
+    type:      "payout" as const,
+    title:     "Payout received",
+    body:      "150.00 USDC from stream #stream-001 landed in your wallet.",
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 26).toISOString(),
+  },
+  {
+    id:        "n-004",
+    type:      "vault" as const,
+    title:     "Employer treasury low",
+    body:      "Your employer's vault is running low — streams may pause if it isn't topped up.",
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
+  },
+];
+
 export const MOCK_HISTORY = [
   {
     id:          1,

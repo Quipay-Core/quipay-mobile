@@ -2,17 +2,19 @@ import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, ActivityInd
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeGradient } from "../../components/ui/SafeGradient";
-import { useState } from "react";
-import { Colors, YellowGradient } from "../../constants/theme";
+import { useState, useMemo } from "react";
+import { YellowGradient, ThemeColors } from "../../constants/theme";
+import { useTheme } from "../../context/ThemeContext";
 import { useWorkerBalance } from "../../hooks/useWorkerData";
 import { useAuth } from "../../context/AuthContext";
 import { shortenAddress } from "../../utils/format";
 
-const c = Colors.dark;
 const { height: SH } = Dimensions.get("window");
 
 export default function WithdrawScreen() {
   const { user } = useAuth();
+  const { colors: c } = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const { available, loading: balanceLoading } = useWorkerBalance();
   const [amount, setAmount] = useState("");
 
@@ -111,34 +113,34 @@ export default function WithdrawScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColors) => StyleSheet.create({
   root:                { flex: 1, backgroundColor: "#F5C249" },
   header:              { minHeight: SH * 0.25 },
   headerInner:         { paddingHorizontal: 20, paddingBottom: 20, justifyContent: "center", gap: 4, flex: 1 },
   title:               { fontFamily: "Urbanist_900Black", fontSize: 32, color: "#000", letterSpacing: -1, paddingTop: 4 },
-  balanceLabel:        { fontFamily: "Urbanist_600SemiBold", fontSize: 11, color: "rgba(0,0,0,0.5)", letterSpacing: 1 },
+  balanceLabel:        { fontFamily: "Urbanist_600SemiBold", fontSize: 12, color: "rgba(0,0,0,0.5)", letterSpacing: 1 },
   balanceValue:        { fontFamily: "Urbanist_900Black", fontSize: 36, color: "#000", letterSpacing: -1.5 },
   balanceUnit:         { fontSize: 16, color: "rgba(0,0,0,0.5)", letterSpacing: 0 },
-  card:                { flex: 1, backgroundColor: "#000", borderTopLeftRadius: 28, borderTopRightRadius: 28, marginTop: -20 },
+  card:                { flex: 1, backgroundColor: c.background, borderTopLeftRadius: 28, borderTopRightRadius: 28, marginTop: -20 },
   cardContent:         { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 100 },
-  fieldLabel:          { fontFamily: "Urbanist_600SemiBold", fontSize: 13, color: c.text, marginBottom: 8 },
+  fieldLabel:          { fontFamily: "Urbanist_600SemiBold", fontSize: 14, color: c.text, marginBottom: 8 },
   inputRow:            { flexDirection: "row", alignItems: "center", backgroundColor: c.card, borderRadius: 14, borderWidth: 1, borderColor: c.border, marginBottom: 10 },
   input:               { flex: 1, fontFamily: "Urbanist_700Bold", fontSize: 20, color: c.text, paddingHorizontal: 16, paddingVertical: 14 },
   maxBtn:              { paddingHorizontal: 16, paddingVertical: 14 },
-  maxBtnText:          { fontFamily: "Urbanist_800ExtraBold", fontSize: 12, color: c.accent, letterSpacing: 0.5 },
+  maxBtnText:          { fontFamily: "Urbanist_800ExtraBold", fontSize: 13, color: c.accentText, letterSpacing: 0.5 },
   quickRow:            { flexDirection: "row", gap: 8, marginBottom: 24 },
   pctBtn:              { flex: 1, backgroundColor: c.card, borderRadius: 10, paddingVertical: 10, alignItems: "center", borderWidth: 1, borderColor: c.border },
-  pctBtnText:          { fontFamily: "Urbanist_600SemiBold", fontSize: 13, color: c.textMuted },
+  pctBtnText:          { fontFamily: "Urbanist_600SemiBold", fontSize: 14, color: c.textMuted },
   destinationCard:     { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: c.card, borderRadius: 14, padding: 16, marginBottom: 24, borderWidth: 1, borderColor: c.border },
-  destinationText:     { flex: 1, fontFamily: "Urbanist_500Medium", fontSize: 14, color: c.text },
-  connectedBadge:      { backgroundColor: "rgba(245,194,73,0.1)", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
-  connectedText:       { fontFamily: "Urbanist_600SemiBold", fontSize: 11, color: "#F5C249" },
+  destinationText:     { flex: 1, fontFamily: "Urbanist_500Medium", fontSize: 15, color: c.text },
+  connectedBadge:      { backgroundColor: c.accentMuted, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
+  connectedText:       { fontFamily: "Urbanist_600SemiBold", fontSize: 12, color: c.accentText },
   summary:             { backgroundColor: c.card, borderRadius: 14, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: c.border, gap: 10 },
   summaryRow:          { flexDirection: "row", justifyContent: "space-between" },
-  summaryLabel:        { fontFamily: "Urbanist_400Regular", fontSize: 13, color: c.textMuted },
-  summaryValue:        { fontFamily: "Urbanist_600SemiBold", fontSize: 13, color: c.text },
+  summaryLabel:        { fontFamily: "Urbanist_400Regular", fontSize: 14, color: c.textMuted },
+  summaryValue:        { fontFamily: "Urbanist_600SemiBold", fontSize: 14, color: c.text },
   withdrawBtn:         { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: c.accent, borderRadius: 16, paddingVertical: 18, marginBottom: 14 },
   withdrawBtnDisabled: { backgroundColor: c.card, borderWidth: 1, borderColor: c.border },
   withdrawBtnText:     { fontFamily: "Urbanist_800ExtraBold", fontSize: 16, color: "#000" },
-  disclaimer:          { fontFamily: "Urbanist_400Regular", fontSize: 12, color: c.textSubtle, textAlign: "center", lineHeight: 18, marginBottom: 32 },
+  disclaimer:          { fontFamily: "Urbanist_400Regular", fontSize: 13, color: c.textSubtle, textAlign: "center", lineHeight: 18, marginBottom: 32 },
 });

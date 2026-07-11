@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback, MutableRefObject } from "react";
 import { usePrivy } from "@privy-io/expo";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { apiFetch, publicFetch } from "../services/api";
-import { MOCK_MODE, MOCK_BALANCE, MOCK_STREAMS, MOCK_HISTORY } from "../services/mockData";
+import { MOCK_MODE, MOCK_BALANCE, MOCK_STREAMS, MOCK_HISTORY, MOCK_NOTIFICATIONS } from "../services/mockData";
 
 type GetTokenFn = () => Promise<string | null>;
 
@@ -182,4 +183,76 @@ export function useWithdrawalHistory(stellarAddress: string | null) {
   }, [stellarAddress]);
 
   return { records, loading, error };
+}
+
+/**
+ * In-app notifications. Read/unread state is tracked locally (AsyncStorage) so
+ * it survives restarts. Mock data feeds the list in MOCK_MODE; the real backend
+ * endpoint isn't built yet, so live mode returns an empty list for now.
+ */
+export type NotificationType = "payout" | "stream" | "vault";
+
+export interface AppNotification {
+  id:        string;
+  type:      NotificationType;
+  title:     string;
+  body:      string;
+  createdAt: string;
+  read:      boolean;
+}
+
+const READ_NOTIFS_KEY = "@quipay_read_notifs";
+
+export function useNotifications() {
+  const [items, setItems]     = useState<Omit<AppNotification, "read">[]>([]);
+  const [readIds, setReadIds] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
+
+  // Restore which notifications have already been read.
+  useEffect(() => {
+    AsyncStorage.getItem(READ_NOTIFS_KEY)
+      .then(raw => {
+        if (!raw) return;
+        try { setReadIds(new Set(JSON.parse(raw) as string[])); } catch { /* ignore */ }
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (MOCK_MODE) {
+      setItems(MOCK_NOTIFICATIONS);
+    } else {
+      // TODO: wire to backend notifications endpoint once it exists.
+      setItems([]);
+    }
+    setLoading(false);
+  }, []);
+
+  const persist = useCallback((ids: Set<string>) => {
+    AsyncStorage.setItem(READ_NOTIFS_KEY, JSON.stringify([...ids])).catch(() => {});
+  }, []);
+
+  const markRead = useCallback((id: string) => {
+    setReadIds(prev => {
+      if (prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.add(id);
+      persist(next);
+      return next;
+    });
+  }, [persist]);
+
+  const markAllRead = useCallback(() => {
+    setReadIds(prev => {
+      const next = new Set(prev);
+      items.forEach(n => next.add(n.id));
+      persist(next);
+      return next;
+    });
+  }, [items, persist]);
+
+  const notifications: AppNotification[] = items.map(n => ({ ...n, read: readIds.has(n.id) }));
+  const unreadCount = notifications.reduce((sum, n) => sum + (n.read ? 0 : 1), 0);
+
+  return { notifications, unreadCount, loading, markRead, markAllRead };
 }

@@ -29,7 +29,7 @@ export default function ConnectScreen() {
     onLoginSuccess() { router.replace("/(tabs)"); },
   });
   const { login: oauthLogin, state: oauthState } = useLoginWithOAuth({
-    onLoginSuccess() { router.replace("/(tabs)"); },
+    onSuccess() { router.replace("/(tabs)"); },
   });
 
   const [email,    setEmail]    = useState("");

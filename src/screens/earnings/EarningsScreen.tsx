@@ -1,17 +1,18 @@
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator, RefreshControl } from "react-native";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { FontAwesome5 } from "@expo/vector-icons";
+import { router, type Href } from "expo-router";
 import { SafeGradient } from "../../components/ui/SafeGradient";
-import { Colors, YellowGradient } from "../../constants/theme";
+import { YellowGradient, ThemeColors } from "../../constants/theme";
 import { LogoWordmark } from "../../components/ui/Logo";
 import { useAuth } from "../../context/AuthContext";
+import { useTheme } from "../../context/ThemeContext";
 import { usePrivy } from "@privy-io/expo";
 import { shortenAddress } from "../../utils/format";
-import { useWorkerBalance, useWorkerStreams, useWithdrawalHistory } from "../../hooks/useWorkerData";
+import { useWorkerBalance, useWorkerStreams, useWithdrawalHistory, useNotifications } from "../../hooks/useWorkerData";
 
-const c = Colors.dark;
 const { height: SH } = Dimensions.get("window");
 const HEADER_H = SH * 0.25;
 
@@ -19,12 +20,15 @@ const MASK = "••••••";
 
 export default function EarningsScreen() {
   const { user } = useAuth();
+  const { colors: c } = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const { logout } = usePrivy();
   const [visible, setVisible] = useState(false);
 
   const { available, streamingPerSec, withdrawn, loading: balanceLoading, error: balanceError, refetch: refetchBalance } = useWorkerBalance();
   const { streams, loading: streamsLoading, error: streamsError, refetch: refetchStreams } = useWorkerStreams();
   const { records: payouts, loading: historyLoading, error: historyError } = useWithdrawalHistory(user?.stellarAddress ?? null);
+  const { unreadCount } = useNotifications();
 
   const [refreshing, setRefreshing] = useState(false);
   const handleRefresh = useCallback(async () => {
@@ -69,8 +73,9 @@ export default function EarningsScreen() {
               <TouchableOpacity style={styles.iconBtn} onPress={() => setVisible(v => !v)}>
                 <Ionicons name={visible ? "eye-outline" : "eye-off-outline"} size={18} color="#000" />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.iconBtn}>
+              <TouchableOpacity style={styles.iconBtn} onPress={() => router.push("/notifications" as Href)}>
                 <Ionicons name="notifications-outline" size={18} color="#000" />
+                {unreadCount > 0 && <View style={styles.notifDot} />}
               </TouchableOpacity>
             </View>
           </View>
@@ -91,7 +96,7 @@ export default function EarningsScreen() {
         style={styles.card}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.cardContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={c.accent} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={c.accentText} />}
       >
         {/* Stats */}
         <View style={styles.grid}>
@@ -103,7 +108,7 @@ export default function EarningsScreen() {
           ].map(({ label, value, unit, accent }) => (
             <View key={label} style={styles.statCard}>
               <Text style={styles.statLabel}>{label}</Text>
-              <Text style={[styles.statValue, accent && { color: c.accent }]}>
+              <Text style={[styles.statValue, accent && { color: c.accentText }]}>
                 {label === "Streams" ? value : mask(value)}
               </Text>
               {!!unit && <Text style={styles.statUnit}>{unit}</Text>}
@@ -125,7 +130,7 @@ export default function EarningsScreen() {
         {/* No wallet linked notice */}
         {!user?.stellarAddress && (
           <View style={styles.noWalletBanner}>
-            <Ionicons name="warning-outline" size={16} color="#F5C249" />
+            <Ionicons name="warning-outline" size={16} color={c.accentText} />
             <Text style={styles.noWalletText}>
               Link your Stellar wallet in Settings to see live earnings.
             </Text>
@@ -145,7 +150,7 @@ export default function EarningsScreen() {
         {/* Employers */}
         <Text style={styles.sectionTitle}>My Employer</Text>
         {streamsLoading ? (
-          <ActivityIndicator color={c.accent} style={{ marginBottom: 24 }} />
+          <ActivityIndicator color={c.accentText} style={{ marginBottom: 24 }} />
         ) : activeStreams.length === 0 ? (
           <View style={[styles.employerCard, { marginBottom: 24 }]}>
             <View style={[styles.employerAvatar, { backgroundColor: c.card }]}>
@@ -186,7 +191,7 @@ export default function EarningsScreen() {
             <Text style={styles.sectionTitle}>My Wallet</Text>
             <View style={styles.walletCard}>
               <View style={styles.walletIcon}>
-                <Ionicons name="wallet-outline" size={18} color={c.accent} />
+                <Ionicons name="wallet-outline" size={18} color={c.accentText} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.walletAddress}>{shortenAddress(user.stellarAddress, 6)}</Text>
@@ -200,7 +205,7 @@ export default function EarningsScreen() {
         {/* Recent payouts */}
         <Text style={styles.sectionTitle}>Recent Payouts</Text>
         {historyLoading ? (
-          <ActivityIndicator color={c.accent} />
+          <ActivityIndicator color={c.accentText} />
         ) : historyError ? (
           <Text style={styles.emptyText}>{historyError}</Text>
         ) : payouts.length === 0 ? (
@@ -213,7 +218,7 @@ export default function EarningsScreen() {
                 style={[styles.payoutRow, i < Math.min(payouts.length, 5) - 1 && { borderBottomWidth: 1, borderBottomColor: c.border }]}
               >
                 <View style={styles.payoutIcon}>
-                  <FontAwesome5 name="arrow-circle-down" size={16} color="#F5C249" solid />
+                  <FontAwesome5 name="arrow-circle-down" size={16} color={c.accentText} solid />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.payoutAmount}>
@@ -241,7 +246,7 @@ export default function EarningsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColors) => StyleSheet.create({
   root:            { flex: 1, backgroundColor: "#F5C249" },
 
   header:          { minHeight: HEADER_H },
@@ -249,53 +254,54 @@ const styles = StyleSheet.create({
   headerRow:       { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingTop: 4 },
   headerActions:   { flexDirection: "row", gap: 8 },
   iconBtn:         { width: 34, height: 34, borderRadius: 10, backgroundColor: "rgba(0,0,0,0.1)", alignItems: "center", justifyContent: "center" },
-  greeting:        { fontFamily: "Urbanist_700Bold", fontSize: 13, color: "rgba(0,0,0,0.6)", marginBottom: 2 },
+  notifDot:        { position: "absolute", top: 7, right: 7, width: 8, height: 8, borderRadius: 4, backgroundColor: "#000" },
+  greeting:        { fontFamily: "Urbanist_700Bold", fontSize: 14, color: "rgba(0,0,0,0.6)", marginBottom: 2 },
   heroValue:       { fontFamily: "Urbanist_900Black", fontSize: 34, color: "#000", letterSpacing: -1.5 },
-  heroSub:         { fontFamily: "Urbanist_500Medium", fontSize: 11, color: "rgba(0,0,0,0.4)", marginTop: 2 },
+  heroSub:         { fontFamily: "Urbanist_500Medium", fontSize: 12, color: "rgba(0,0,0,0.4)", marginTop: 2 },
 
-  card:            { flex: 1, backgroundColor: "#000", borderTopLeftRadius: 28, borderTopRightRadius: 28, marginTop: -20 },
+  card:            { flex: 1, backgroundColor: c.background, borderTopLeftRadius: 28, borderTopRightRadius: 28, marginTop: -20 },
   cardContent:     { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 100 },
 
   grid:            { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 14 },
   statCard:        { flex: 1, minWidth: "45%", backgroundColor: c.card, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: c.border },
-  statLabel:       { fontFamily: "Urbanist_600SemiBold", fontSize: 11, color: c.textSubtle, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 },
+  statLabel:       { fontFamily: "Urbanist_600SemiBold", fontSize: 12, color: c.textSubtle, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 },
   statValue:       { fontFamily: "Urbanist_800ExtraBold", fontSize: 20, color: c.text, letterSpacing: -0.5 },
-  statUnit:        { fontFamily: "Urbanist_400Regular", fontSize: 11, color: c.textMuted, marginTop: 2 },
+  statUnit:        { fontFamily: "Urbanist_400Regular", fontSize: 12, color: c.textMuted, marginTop: 2 },
 
-  streamBadge:     { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "rgba(245,194,73,0.08)", borderRadius: 20, paddingHorizontal: 12, paddingVertical: 8, alignSelf: "flex-start", marginBottom: 24, borderWidth: 1, borderColor: "rgba(245,194,73,0.2)" },
-  streamDot:       { width: 7, height: 7, borderRadius: 4, backgroundColor: "#F5C249" },
-  streamBadgeText: { fontFamily: "Urbanist_600SemiBold", fontSize: 13, color: "#F5C249" },
+  streamBadge:     { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: c.accentMuted, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 8, alignSelf: "flex-start", marginBottom: 24, borderWidth: 1, borderColor: c.accentBorder },
+  streamDot:       { width: 7, height: 7, borderRadius: 4, backgroundColor: c.accentText },
+  streamBadgeText: { fontFamily: "Urbanist_600SemiBold", fontSize: 14, color: c.accentText },
 
-  noWalletBanner:  { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "rgba(245,194,73,0.06)", borderRadius: 12, padding: 12, marginBottom: 20, borderWidth: 1, borderColor: "rgba(245,194,73,0.15)" },
-  noWalletText:    { fontFamily: "Urbanist_500Medium", fontSize: 13, color: c.textSubtle, flex: 1 },
+  noWalletBanner:  { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: c.accentMuted, borderRadius: 12, padding: 12, marginBottom: 20, borderWidth: 1, borderColor: c.accentBorder },
+  noWalletText:    { fontFamily: "Urbanist_500Medium", fontSize: 14, color: c.textSubtle, flex: 1 },
   errorBanner:     { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "rgba(239,68,68,0.08)", borderRadius: 12, padding: 12, marginBottom: 20, borderWidth: 1, borderColor: "rgba(239,68,68,0.2)" },
-  errorBannerText: { fontFamily: "Urbanist_500Medium", fontSize: 13, color: "#ef4444", flex: 1 },
+  errorBannerText: { fontFamily: "Urbanist_500Medium", fontSize: 14, color: "#ef4444", flex: 1 },
 
   sectionTitle:    { fontFamily: "Urbanist_700Bold", fontSize: 16, color: c.text, marginBottom: 12 },
 
   employerCard:    { flexDirection: "row", alignItems: "center", backgroundColor: c.card, borderRadius: 16, padding: 16, gap: 12, borderWidth: 1, borderColor: c.border, marginBottom: 12 },
   employerAvatar:  { width: 44, height: 44, borderRadius: 12, backgroundColor: c.accent, alignItems: "center", justifyContent: "center" },
-  employerAvatarText: { fontFamily: "Urbanist_800ExtraBold", fontSize: 14, color: "#000" },
-  employerTitle:   { fontFamily: "Urbanist_600SemiBold", fontSize: 14, color: c.text },
-  employerSub:     { fontFamily: "Urbanist_400Regular", fontSize: 12, color: c.textMuted, marginTop: 2 },
-  activeBadge:     { backgroundColor: "rgba(245,194,73,0.1)", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
-  activeBadgeText: { fontFamily: "Urbanist_600SemiBold", fontSize: 12, color: "#F5C249" },
+  employerAvatarText: { fontFamily: "Urbanist_800ExtraBold", fontSize: 15, color: "#000" },
+  employerTitle:   { fontFamily: "Urbanist_600SemiBold", fontSize: 15, color: c.text },
+  employerSub:     { fontFamily: "Urbanist_400Regular", fontSize: 13, color: c.textMuted, marginTop: 2 },
+  activeBadge:     { backgroundColor: c.accentMuted, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
+  activeBadgeText: { fontFamily: "Urbanist_600SemiBold", fontSize: 13, color: c.accentText },
 
   walletCard:      { flexDirection: "row", alignItems: "center", backgroundColor: c.card, borderRadius: 16, padding: 16, gap: 12, borderWidth: 1, borderColor: c.border, marginBottom: 24 },
-  walletIcon:      { width: 40, height: 40, borderRadius: 12, backgroundColor: "rgba(245,194,73,0.1)", alignItems: "center", justifyContent: "center" },
-  walletAddress:   { fontFamily: "Urbanist_600SemiBold", fontSize: 14, color: c.text },
-  walletSub:       { fontFamily: "Urbanist_400Regular", fontSize: 12, color: c.textMuted, marginTop: 2 },
+  walletIcon:      { width: 40, height: 40, borderRadius: 12, backgroundColor: c.accentMuted, alignItems: "center", justifyContent: "center" },
+  walletAddress:   { fontFamily: "Urbanist_600SemiBold", fontSize: 15, color: c.text },
+  walletSub:       { fontFamily: "Urbanist_400Regular", fontSize: 13, color: c.textMuted, marginTop: 2 },
 
-  emptyText:       { fontFamily: "Urbanist_400Regular", fontSize: 14, color: c.textMuted, marginBottom: 24 },
+  emptyText:       { fontFamily: "Urbanist_400Regular", fontSize: 15, color: c.textMuted, marginBottom: 24 },
 
   payoutList:      { backgroundColor: c.card, borderRadius: 16, borderWidth: 1, borderColor: c.border, marginBottom: 24, overflow: "hidden" },
   payoutRow:       { flexDirection: "row", alignItems: "center", padding: 14, gap: 12 },
-  payoutIcon:      { width: 36, height: 36, borderRadius: 10, backgroundColor: "rgba(245,194,73,0.1)", alignItems: "center", justifyContent: "center" },
-  payoutAmount:    { fontFamily: "Urbanist_700Bold", fontSize: 14, color: "#F5C249" },
-  payoutDate:      { fontFamily: "Urbanist_400Regular", fontSize: 12, color: c.textMuted, marginTop: 1 },
-  payoutBadge:     { backgroundColor: "rgba(245,194,73,0.1)", borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
-  payoutBadgeText: { fontFamily: "Urbanist_600SemiBold", fontSize: 11, color: "#F5C249" },
+  payoutIcon:      { width: 36, height: 36, borderRadius: 10, backgroundColor: c.accentMuted, alignItems: "center", justifyContent: "center" },
+  payoutAmount:    { fontFamily: "Urbanist_700Bold", fontSize: 15, color: c.accentText },
+  payoutDate:      { fontFamily: "Urbanist_400Regular", fontSize: 13, color: c.textMuted, marginTop: 1 },
+  payoutBadge:     { backgroundColor: c.accentMuted, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+  payoutBadgeText: { fontFamily: "Urbanist_600SemiBold", fontSize: 12, color: c.accentText },
 
   signOutBtn:      { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 16 },
-  signOutText:     { fontFamily: "Urbanist_500Medium", fontSize: 14, color: c.textSubtle },
+  signOutText:     { fontFamily: "Urbanist_500Medium", fontSize: 15, color: c.textSubtle },
 });

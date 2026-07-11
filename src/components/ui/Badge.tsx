@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet } from "react-native";
-import { Colors } from "../../constants/theme";
+import { ThemeColors } from "../../constants/theme";
+import { useTheme } from "../../context/ThemeContext";
 
 type BadgeVariant = "accent" | "success" | "muted" | "error";
 
@@ -8,15 +9,16 @@ interface BadgeProps {
   variant?: BadgeVariant;
 }
 
-const VARIANT_STYLES: Record<BadgeVariant, { bg: string; text: string }> = {
-  accent:  { bg: "rgba(250,204,21,0.12)",  text: Colors.dark.accent   },
-  success: { bg: "rgba(245,194,73,0.1)",    text: "#F5C249"            },
-  error:   { bg: "rgba(239,68,68,0.1)",    text: "#ef4444"            },
-  muted:   { bg: "rgba(255,255,255,0.06)", text: Colors.dark.textMuted },
-};
+const variantStyles = (c: ThemeColors): Record<BadgeVariant, { bg: string; text: string }> => ({
+  accent:  { bg: c.accentMuted,          text: c.accentText },
+  success: { bg: c.accentMuted,          text: c.accentText },
+  error:   { bg: "rgba(239,68,68,0.1)",  text: c.error      },
+  muted:   { bg: c.accentMuted,          text: c.textMuted  },
+});
 
 export function Badge({ label, variant = "muted" }: BadgeProps) {
-  const s = VARIANT_STYLES[variant];
+  const { colors: c } = useTheme();
+  const s = variantStyles(c)[variant];
   return (
     <View style={[styles.badge, { backgroundColor: s.bg }]}>
       <Text style={[styles.text, { color: s.text }]}>{label}</Text>

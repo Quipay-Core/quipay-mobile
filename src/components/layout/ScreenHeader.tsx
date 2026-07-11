@@ -1,9 +1,9 @@
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { useMemo } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { LogoWordmark } from "../ui/Logo";
-import { Colors } from "../../constants/theme";
-
-const c = Colors.dark;
+import { ThemeColors } from "../../constants/theme";
+import { useTheme } from "../../context/ThemeContext";
 
 interface ScreenHeaderProps {
   title: string;
@@ -14,6 +14,9 @@ interface ScreenHeaderProps {
 }
 
 export function ScreenHeader({ title, subtitle, showLogo, rightIcon, onRightPress }: ScreenHeaderProps) {
+  const { colors: c } = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
+
   return (
     <View style={styles.header}>
       <View style={styles.left}>
@@ -35,7 +38,7 @@ export function ScreenHeader({ title, subtitle, showLogo, rightIcon, onRightPres
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColors) => StyleSheet.create({
   header:   { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 16 },
   left:     { flex: 1 },
   title:    { fontFamily: "Urbanist_800ExtraBold", fontSize: 24, color: c.text, letterSpacing: -0.5 },
