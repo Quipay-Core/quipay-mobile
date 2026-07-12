@@ -10,6 +10,7 @@ import { useAuth } from "../../context/AuthContext";
 import { usePrivy } from "@privy-io/expo";
 import { useTheme } from "../../context/ThemeContext";
 import { shortenAddress } from "../../utils/format";
+import { useQuipayId } from "../../hooks/useQuipayId";
 
 const NOTIF_STREAM_KEY = "@quipay_notif_stream";
 const NOTIF_PAYOUT_KEY = "@quipay_notif_payout";
@@ -19,13 +20,14 @@ const { height: SH } = Dimensions.get("window");
 
 export default function SettingsScreen() {
   const { user } = useAuth();
+  const { quipayId, email: qpEmail } = useQuipayId();
   const { logout } = usePrivy();
   const { isDark, toggleTheme, colors: c } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
   const [notifStream, setNotifStream] = useState(true);
   const [notifPayout, setNotifPayout] = useState(true);
   const [notifVault,  setNotifVault]  = useState(false);
-  const [copied,      setCopied]      = useState<"evm" | "stellar" | null>(null);
+  const [copied,      setCopied]      = useState<"evm" | "stellar" | "qpid" | null>(null);
 
   // Load persisted notification prefs on mount
   useEffect(() => {
@@ -144,14 +146,34 @@ export default function SettingsScreen() {
 
             <Text style={styles.sectionTitle}>Account</Text>
             <View style={styles.group}>
-              <View style={[styles.row, { borderBottomWidth: 1, borderBottomColor: c.border }]}>
+              {/* Quipay ID — the identity an employer adds you by */}
+              <TouchableOpacity
+                style={[styles.row, { borderBottomWidth: 1, borderBottomColor: c.border }]}
+                onPress={() => {
+                  if (quipayId) {
+                    Clipboard.setStringAsync(quipayId);
+                    setCopied("qpid");
+                    setTimeout(() => setCopied(null), 1500);
+                  }
+                }}
+              >
                 <View style={styles.rowLeft}>
                   <View style={[styles.iconBox, { backgroundColor: c.accentMuted }]}>
-                    <Ionicons name="person-outline" size={18} color={c.accentText} />
+                    <Ionicons name="id-card-outline" size={18} color={c.accentText} />
                   </View>
-                  <Text style={styles.rowLabel}>{user.name ?? user.email ?? "Worker"}</Text>
+                  <View>
+                    <Text style={styles.rowLabel}>{quipayId ?? "…"}</Text>
+                    <Text style={styles.rowSub}>
+                      Quipay ID{qpEmail || user.email ? ` · ${qpEmail ?? user.email}` : ""}
+                    </Text>
+                  </View>
                 </View>
-              </View>
+                <Ionicons
+                  name={copied === "qpid" ? "checkmark" : "copy-outline"}
+                  size={16}
+                  color={copied === "qpid" ? c.success : c.textSubtle}
+                />
+              </TouchableOpacity>
 
               <TouchableOpacity style={styles.row} onPress={logout}>
                 <View style={styles.rowLeft}>

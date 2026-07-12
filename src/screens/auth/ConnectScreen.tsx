@@ -55,7 +55,8 @@ export default function ConnectScreen() {
       await sendCode({ email: trimmed });
       setCodeSent(true);
     } catch (e: any) {
-      Alert.alert("Error", e?.message ?? "Failed to send code. Please try again.");
+      const net = (globalThis as any).__netlog?.join("\n") ?? "(no net log)";
+      Alert.alert("Error", `${e?.message ?? "Failed to send code."}\n\n— recent requests —\n${net}`);
     }
   }
 
@@ -90,7 +91,11 @@ export default function ConnectScreen() {
       if (alreadyAuthed) {
         router.replace("/(tabs)");
       } else {
-        Alert.alert("Login failed", e?.message || "Something went wrong. Please try again.");
+        const net = (globalThis as any).__netlog?.join("\n") ?? "(no net log)";
+        Alert.alert(
+          "Login failed",
+          `${e?.message || "Something went wrong."}\n\n— recent requests —\n${net}`,
+        );
       }
     }
   }

@@ -35,6 +35,7 @@ function ThemedNavigator() {
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="notifications" options={{ headerShown: false, presentation: "modal", animation: "slide_from_bottom" }} />
+      <Stack.Screen name="send" options={{ headerShown: false, presentation: "modal", animation: "slide_from_bottom" }} />
     </Stack>
   );
 }

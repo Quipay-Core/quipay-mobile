@@ -2,7 +2,7 @@
  * Flip to false when the real backend is live.
  * All data hooks check this flag and bypass API calls when true.
  */
-export const MOCK_MODE = true;
+export const MOCK_MODE = false;
 
 export const MOCK_BALANCE = {
   available:      "1240.5000000",

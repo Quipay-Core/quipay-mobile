@@ -12,6 +12,9 @@ import { useTheme } from "../../context/ThemeContext";
 import { usePrivy } from "@privy-io/expo";
 import { shortenAddress } from "../../utils/format";
 import { useWorkerBalance, useWorkerStreams, useWithdrawalHistory, useNotifications } from "../../hooks/useWorkerData";
+import { useWalletBalance } from "../../hooks/useWalletBalance";
+import { useLiveValue } from "../../hooks/useLiveValue";
+import { useQuipayId } from "../../hooks/useQuipayId";
 
 const { height: SH } = Dimensions.get("window");
 const HEADER_H = SH * 0.25;
@@ -37,9 +40,14 @@ export default function EarningsScreen() {
     setRefreshing(false);
   }, [refetchBalance, refetchStreams]);
 
+  const { usdc: walletUsdc } = useWalletBalance(user?.stellarAddress ?? null);
+  const { quipayId, email: qpEmail } = useQuipayId();
+
   const activeStreams = streams.filter(s => s.status === "active");
   const safe = (n: number) => (isNaN(n) || !isFinite(n) ? 0 : n);
-  const totalEarned = safe(withdrawn) + safe(available);
+  // Stream earnings that keep vesting between polls — tick live.
+  const liveAvailable = useLiveValue(safe(available), safe(streamingPerSec));
+  const totalEarned = safe(withdrawn) + liveAvailable;
 
   const fmt = (n: number) =>
     safe(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 4 });
@@ -53,7 +61,12 @@ export default function EarningsScreen() {
     return "Good evening";
   };
 
-  const displayName = user?.name?.split(" ")[0] ?? user?.email?.split("@")[0] ?? "there";
+  const emailForName = user?.email ?? qpEmail ?? undefined;
+  const displayName =
+    user?.name?.split(" ")[0] ??
+    emailForName?.split("@")[0] ??
+    quipayId ??
+    "there";
   const isLoading = balanceLoading || streamsLoading || historyLoading;
 
   return (
@@ -84,9 +97,9 @@ export default function EarningsScreen() {
             {isLoading ? (
               <ActivityIndicator color="#000" style={{ marginVertical: 8 }} />
             ) : (
-              <Text style={styles.heroValue}>{mask(`$${fmt(totalEarned)}`)}</Text>
+              <Text style={styles.heroValue}>{mask(`$${fmt(walletUsdc)}`)}</Text>
             )}
-            <Text style={styles.heroSub}>Total earned · USDC</Text>
+            <Text style={styles.heroSub}>Wallet balance · USDC</Text>
           </View>
         </SafeAreaView>
       </SafeGradient>
@@ -101,7 +114,7 @@ export default function EarningsScreen() {
         {/* Stats */}
         <View style={styles.grid}>
           {[
-            { label: "Available",  value: fmt(safe(available)),                       unit: "USDC",  accent: true  },
+            { label: "Available",  value: liveAvailable.toFixed(6),                    unit: "USDC",  accent: true  },
             { label: "Streaming",  value: safe(streamingPerSec).toFixed(7),           unit: "USDC/s",accent: false },
             { label: "Withdrawn",  value: fmt(safe(withdrawn)),                       unit: "USDC",  accent: false },
             { label: "Streams",    value: String(activeStreams.length),               unit: "",      accent: false },
@@ -199,6 +212,10 @@ export default function EarningsScreen() {
               </View>
               <Ionicons name="copy-outline" size={18} color={c.textSubtle} />
             </View>
+            <TouchableOpacity style={styles.sendCta} onPress={() => router.push("/send" as Href)}>
+              <Ionicons name="paper-plane-outline" size={18} color="#000" />
+              <Text style={styles.sendCtaText}>Send USDC</Text>
+            </TouchableOpacity>
           </>
         )}
 
@@ -287,7 +304,9 @@ const makeStyles = (c: ThemeColors) => StyleSheet.create({
   activeBadge:     { backgroundColor: c.accentMuted, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
   activeBadgeText: { fontFamily: "Urbanist_600SemiBold", fontSize: 13, color: c.accentText },
 
-  walletCard:      { flexDirection: "row", alignItems: "center", backgroundColor: c.card, borderRadius: 16, padding: 16, gap: 12, borderWidth: 1, borderColor: c.border, marginBottom: 24 },
+  walletCard:      { flexDirection: "row", alignItems: "center", backgroundColor: c.card, borderRadius: 16, padding: 16, gap: 12, borderWidth: 1, borderColor: c.border, marginBottom: 12 },
+  sendCta:         { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: c.accent, borderRadius: 16, paddingVertical: 16, marginBottom: 24 },
+  sendCtaText:     { fontFamily: "Urbanist_800ExtraBold", fontSize: 15, color: "#000" },
   walletIcon:      { width: 40, height: 40, borderRadius: 12, backgroundColor: c.accentMuted, alignItems: "center", justifyContent: "center" },
   walletAddress:   { fontFamily: "Urbanist_600SemiBold", fontSize: 15, color: c.text },
   walletSub:       { fontFamily: "Urbanist_400Regular", fontSize: 13, color: c.textMuted, marginTop: 2 },
